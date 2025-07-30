@@ -18,3 +18,7 @@ To run Java benchmarks, run:
 To run python benchmarks, first create a server with `sudo bash run_yuca_sever.sh`. Then open a new terminal, and run `bash benchmarks/run_pyperformance.sh`.
 
 To run the BERT experiments, first create a server with `sudo bash run_yuca_sever_with_nvml.sh` if you are using a GPU or `sudo bash run_yuca_sever.sh` otherwise. Then open a new terminal, and run `bash experiments/bert_finetune/bert_glue_finetune_experiment_test.sh` or `bash experiments/bert_finetune/bert_glue_finetune_experiment.sh`.
+
+## Data
+
+The full plots for our evaluation can be found in https://github.com/yuca-profiler/yuca/tree/main/evaluation.
