@@ -84,6 +84,7 @@ public final class ProcStat {
                   SignalData.Metadata.newBuilder()
                       .setName("cpu")
                       .setValue(Integer.toString(cpu.cpu)))
+              .addMetadata(SignalData.Metadata.newBuilder().setName("kind").setValue("active"))
               .setValue(
                   second.get(cpu.cpu).user
                       - cpu.user
@@ -91,8 +92,6 @@ public final class ProcStat {
                       - cpu.nice
                       + second.get(cpu.cpu).system
                       - cpu.system
-                      + second.get(cpu.cpu).idle
-                      - cpu.idle
                       + second.get(cpu.cpu).iowait
                       - cpu.iowait
                       + second.get(cpu.cpu).irq
@@ -105,6 +104,15 @@ public final class ProcStat {
                       - cpu.guest
                       + second.get(cpu.cpu).guestNice
                       - cpu.guestNice)
+              .build());
+      jiffies.add(
+          SignalData.newBuilder()
+              .addMetadata(
+                  SignalData.Metadata.newBuilder()
+                      .setName("cpu")
+                      .setValue(Integer.toString(cpu.cpu)))
+              .addMetadata(SignalData.Metadata.newBuilder().setName("kind").setValue("idle"))
+              .setValue(second.get(cpu.cpu).idle - cpu.idle)
               .build());
     }
     return jiffies;

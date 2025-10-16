@@ -58,6 +58,7 @@ public final class CpuFreq {
                     SignalData.Metadata.newBuilder()
                         .setName("cpu")
                         .setValue(Integer.toString(reading.cpu)))
+                .addMetadata(SignalData.Metadata.newBuilder().setName("kind").setValue("observed"))
                 .setValue(reading.frequency)
                 .build());
         frequencies.add(
@@ -66,6 +67,7 @@ public final class CpuFreq {
                     SignalData.Metadata.newBuilder()
                         .setName("cpu")
                         .setValue(Integer.toString(reading.cpu)))
+                .addMetadata(SignalData.Metadata.newBuilder().setName("kind").setValue("set"))
                 .setValue(reading.setFrequency)
                 .build());
       }
