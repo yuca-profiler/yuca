@@ -12,7 +12,7 @@ import yuca.signal.SignalInterval.Timestamp;
 import yuca.util.Timestamps;
 
 /** Class to compute the energy consumption of tasks based on fractional consumption. */
-public final class EflectAccounting {
+public final class TaskEnergyAccounting {
   private static final int[] SOCKETS_MAP = getCpuSocketMapping();
 
   /**
@@ -89,5 +89,5 @@ public final class EflectAccounting {
     }
   }
 
-  private EflectAccounting() {}
+  private TaskEnergyAccounting() {}
 }

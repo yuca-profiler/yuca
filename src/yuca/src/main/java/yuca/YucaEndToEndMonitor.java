@@ -2,26 +2,14 @@ package yuca;
 
 import static java.util.stream.Collectors.toList;
 import static yuca.util.DataOperations.forwardApply;
-import static yuca.util.DataOperations.forwardPartialAlign;
 
-import java.lang.StackWalker.Option;
-import java.nio.file.SecureDirectoryStream;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.logging.Logger;
 import yuca.emissions.EmissionsConverter;
 import yuca.emissions.LocaleEmissionsConverters;
-import yuca.linux.freq.CpuFreq;
-import yuca.linux.freq.CpuFrequencySample;
-import yuca.linux.jiffies.EflectAccounting;
-import yuca.linux.jiffies.JiffiesAccounting;
 import yuca.linux.jiffies.ProcStat;
-import yuca.linux.jiffies.ProcTask;
-import yuca.linux.jiffies.ProcessSample;
 import yuca.linux.jiffies.SystemSample;
-import yuca.linux.thermal.SysThermal;
-import yuca.linux.thermal.ThermalZonesSample;
 import yuca.signal.Component;
 import yuca.signal.Report;
 import yuca.signal.Signal;
@@ -48,7 +36,7 @@ public final class YucaEndToEndMonitor implements YucaMonitor {
   private SystemSample systemEnd;
   private Optional<?> raplStart;
   private Optional<?> raplEnd;
-    
+
   /** Starts the sampling. */
   @Override
   public void start() {
@@ -60,13 +48,13 @@ public final class YucaEndToEndMonitor implements YucaMonitor {
   }
 
   /**
-   * Stops the sampling and merges the data they collected into a {@link YucaReport}.
-   * Returns an empty {@link Optional} if yuca wasn't running.
+   * Stops the sampling and merges the data they collected into a {@link YucaReport}. Returns an
+   * empty {@link Optional} if yuca wasn't running.
    */
   @Override
   public Optional<Report> stop() {
     logger.info("stopping yuca");
-    
+
     monotonicTimeEnd = new MonotonicTimeSample();
     systemEnd = ProcStat.sampleCpus();
     raplEnd = raplSource.source.get();
@@ -78,21 +66,22 @@ public final class YucaEndToEndMonitor implements YucaMonitor {
     logger.info("creating monotonic time signal");
     createPhysicalSignal(
             forwardApply(
-                List.of(monotonicTimeStart, monotonicTimeEnd), YucaEndToEndMonitor::monotonicTimeDifference),
+                List.of(monotonicTimeStart, monotonicTimeEnd),
+                YucaEndToEndMonitor::monotonicTimeDifference),
             Signal.Unit.NANOSECONDS,
             "clock_gettime(CLOCK_MONOTONIC, &ts)")
         .ifPresent(systemComponent::addSignal);
 
     Optional<Signal> raplEnergy =
-    createPhysicalSignal(
-        forwardApply(
-            List.of(raplStart, raplEnd).stream()
-                .filter(Optional::isPresent)
-                .map(Optional::get)
-                .collect(toList()),
-            raplSource::difference),
-        Signal.Unit.JOULES,
-        raplSource.name);
+        createPhysicalSignal(
+            forwardApply(
+                List.of(raplStart, raplEnd).stream()
+                    .filter(Optional::isPresent)
+                    .map(Optional::get)
+                    .collect(toList()),
+                raplSource::difference),
+            Signal.Unit.JOULES,
+            raplSource.name);
     raplEnergy.ifPresent(systemComponent::addSignal);
     logger.info("creating system jiffies signal");
 

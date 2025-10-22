@@ -85,8 +85,7 @@ public final class YucaSystemMonitor implements YucaMonitor {
         // physical signals
         logger.info("creating monotonic time signal");
         createPhysicalSignal(
-                forwardApply(
-                    monotonicTimeFuture.get(), YucaSystemMonitor::monotonicTimeDifference),
+                forwardApply(monotonicTimeFuture.get(), YucaSystemMonitor::monotonicTimeDifference),
                 Signal.Unit.NANOSECONDS,
                 "clock_gettime(CLOCK_MONOTONIC, &ts)")
             .ifPresent(systemComponent::addSignal);

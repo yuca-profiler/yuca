@@ -12,12 +12,12 @@ import yuca.emissions.EmissionsConverter;
 import yuca.emissions.LocaleEmissionsConverters;
 import yuca.linux.freq.CpuFreq;
 import yuca.linux.freq.CpuFrequencySample;
-import yuca.linux.jiffies.EflectAccounting;
 import yuca.linux.jiffies.JiffiesAccounting;
 import yuca.linux.jiffies.ProcStat;
 import yuca.linux.jiffies.ProcTask;
 import yuca.linux.jiffies.ProcessSample;
 import yuca.linux.jiffies.SystemSample;
+import yuca.linux.jiffies.TaskEnergyAccounting;
 import yuca.linux.thermal.SysThermal;
 import yuca.linux.thermal.ThermalZonesSample;
 import yuca.signal.Component;
@@ -198,7 +198,7 @@ public final class YucaApplicationMonitor implements YucaMonitor {
                           forwardPartialAlign(
                               activity,
                               raplEnergy.get().getIntervalList(),
-                              EflectAccounting::computeTaskEnergy))
+                              TaskEnergyAccounting::computeTaskEnergy))
                       .build();
               processComponent.addSignal(processEnergy);
 
