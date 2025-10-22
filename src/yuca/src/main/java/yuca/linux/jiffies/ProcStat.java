@@ -1,5 +1,6 @@
 package yuca.linux.jiffies;
 
+import static yuca.linux.CpuInfo.getCpuSocketMapping;
 import static yuca.util.Timestamps.fromInstant;
 import static yuca.util.Timestamps.nowAsInstant;
 
@@ -19,6 +20,7 @@ public final class ProcStat {
   // system information
   private static final int CPU_COUNT = Runtime.getRuntime().availableProcessors();
   private static final String SYSTEM_STAT_FILE = String.join(File.separator, "/proc", "stat");
+  private static final int[] SOCKETS_MAP = getCpuSocketMapping();
 
   // indicies for cpu stat because there are so many
   private enum CpuIndex {
@@ -78,12 +80,12 @@ public final class ProcStat {
     }
     ArrayList<SignalData> jiffies = new ArrayList<>();
     for (CpuJiffies cpu : first) {
+      String cpuId = Integer.toString(cpu.cpu);
+      String socketId = Integer.toString(SOCKETS_MAP[cpu.cpu]);
       jiffies.add(
           SignalData.newBuilder()
-              .addMetadata(
-                  SignalData.Metadata.newBuilder()
-                      .setName("cpu")
-                      .setValue(Integer.toString(cpu.cpu)))
+              .addMetadata(SignalData.Metadata.newBuilder().setName("cpu").setValue(cpuId))
+              .addMetadata(SignalData.Metadata.newBuilder().setName("socket").setValue(socketId))
               .addMetadata(SignalData.Metadata.newBuilder().setName("kind").setValue("active"))
               .setValue(
                   second.get(cpu.cpu).user
@@ -107,10 +109,8 @@ public final class ProcStat {
               .build());
       jiffies.add(
           SignalData.newBuilder()
-              .addMetadata(
-                  SignalData.Metadata.newBuilder()
-                      .setName("cpu")
-                      .setValue(Integer.toString(cpu.cpu)))
+              .addMetadata(SignalData.Metadata.newBuilder().setName("cpu").setValue(cpuId))
+              .addMetadata(SignalData.Metadata.newBuilder().setName("socket").setValue(socketId))
               .addMetadata(SignalData.Metadata.newBuilder().setName("kind").setValue("idle"))
               .setValue(second.get(cpu.cpu).idle - cpu.idle)
               .build());

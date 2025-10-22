@@ -10,6 +10,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
@@ -25,8 +26,8 @@ public final class SysThermal {
   private static final Logger logger = getLogger();
 
   private static final Path SYS_THERMAL = Paths.get("/sys", "class", "thermal");
-  private static final int ZONE_COUNT = getThermalZoneCount();
-  private static final Map<Integer, String> ZONES = getZones();
+  private static final Map<Integer, ThermalZoneKind> ZONES = getZones();
+  private static final Map<Integer, Integer> ZONE_SOCKET_MAP = getZoneSockets();
 
   public static int getTemperature(int zone) {
     return readCounter(zone, "temp") / 1000;
@@ -36,14 +37,14 @@ public final class SysThermal {
     return ZONES.size();
   }
 
-  public static String getZoneType(int zone) {
+  public static ThermalZoneKind getZoneType(int zone) {
     return ZONES.get(zone);
   }
 
   public static ThermalZonesSample sample() {
     Instant timestamp = Instant.now();
     ArrayList<ThermalZoneTemperature> readings = new ArrayList<>();
-    for (int zone = 0; zone < ZONE_COUNT; zone++) {
+    for (int zone = 0; zone < ZONES.size(); zone++) {
       readings.add(new ThermalZoneTemperature(zone, ZONES.get(zone), getTemperature(zone)));
     }
     return new ThermalZonesSample(timestamp, readings);
@@ -64,7 +65,13 @@ public final class SysThermal {
                         .setName("zone")
                         .setValue(Integer.toString(reading.zone)))
                 .addMetadata(
-                    SignalData.Metadata.newBuilder().setName("type").setValue(reading.type))
+                    SignalData.Metadata.newBuilder()
+                        .setName("zone")
+                        .setValue(Integer.toString(ZONE_SOCKET_MAP.get(reading.zone))))
+                .addMetadata(
+                    SignalData.Metadata.newBuilder()
+                        .setName("kind")
+                        .setValue(reading.kind.toString()))
                 .setValue(reading.temperature)
                 .build());
       }
@@ -104,7 +111,7 @@ public final class SysThermal {
    * Reads thermal zone information from /sys/class/thermal/ and returns a map of each thermal zone
    * to its type.
    */
-  private static Map<Integer, String> getZones() {
+  private static Map<Integer, ThermalZoneKind> getZones() {
     if (!Files.exists(SYS_THERMAL)) {
       logger.warning("couldn't check the thermal zones; thermal sysfs likely not available");
       return Map.of();
@@ -117,18 +124,34 @@ public final class SysThermal {
                   p -> Integer.parseInt(p.toString().replaceAll("\\D+", "")),
                   p -> {
                     try {
-                      return Files.readString(p.resolve("type")).toString().trim();
+                      return ThermalZoneKind.parseZoneName(
+                          Files.readString(p.resolve("type")).toString().trim());
                     } catch (IOException e) {
                       logger.warning(
                           "couldn't read from /sys/class/thermal; thermal sysfs likely not"
                               + " available");
-                      return "";
+                      return ThermalZoneKind.UNKNOWN_ZONE_KIND;
                     }
                   }));
     } catch (Exception e) {
       logger.warning("couldn't check the socket count; thermal sysfs likely not available");
       return Map.of();
     }
+  }
+
+  /**
+   * Reads thermal zone information from /sys/class/thermal/ and returns a map of each thermal zone
+   * to its type.
+   */
+  private static Map<Integer, Integer> getZoneSockets() {
+    HashMap<Integer, Integer> zoneSockets = new HashMap<>();
+    int socket = 0;
+    for (int zone = 0; zone < ZONES.size(); zone++) {
+      if (ZONES.get(zone) == ThermalZoneKind.X86_PKG_TEMP) {
+        zoneSockets.put(zone, socket++);
+      }
+    }
+    return zoneSockets;
   }
 
   private static int readCounter(int cpu, String component) {
