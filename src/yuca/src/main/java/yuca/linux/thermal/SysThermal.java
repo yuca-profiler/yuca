@@ -66,7 +66,7 @@ public final class SysThermal {
                         .setValue(Integer.toString(reading.zone)))
                 .addMetadata(
                     SignalData.Metadata.newBuilder()
-                        .setName("zone")
+                        .setName("socket")
                         .setValue(Integer.toString(ZONE_SOCKET_MAP.get(reading.zone))))
                 .addMetadata(
                     SignalData.Metadata.newBuilder()
