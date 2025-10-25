@@ -1,7 +1,8 @@
 DATA_DIR=data
 mkdir -p "${DATA_DIR}"
 
-ITERATIONS=1
+ITERATIONS=25
+PERIOD=32
 LOCALE=USA
 
 run_benchmark() {
@@ -9,6 +10,7 @@ run_benchmark() {
     mkdir -p "${data_dir}"
     java \
         -Dyuca.benchmarks.output="${data_dir}" \
+        -Dyuca.benchmarks.period="${PERIOD}" \
         -Dyuca.emissions.locale="${LOCALE}" \
         -jar bazel-bin/benchmarks/src/main/java/yuca/benchmarks/dacapo_deploy.jar \
         -n ${ITERATIONS} --no-validation \

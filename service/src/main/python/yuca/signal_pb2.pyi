@@ -79,7 +79,16 @@ class Component(_message.Message):
     def __init__(self, component_type: _Optional[str] = ..., component_id: _Optional[str] = ..., signal: _Optional[_Iterable[_Union[Signal, _Mapping]]] = ...) -> None: ...
 
 class Report(_message.Message):
-    __slots__ = ("component",)
+    __slots__ = ("component", "metadata")
+    class Metadata(_message.Message):
+        __slots__ = ("name", "value")
+        NAME_FIELD_NUMBER: _ClassVar[int]
+        VALUE_FIELD_NUMBER: _ClassVar[int]
+        name: str
+        value: str
+        def __init__(self, name: _Optional[str] = ..., value: _Optional[str] = ...) -> None: ...
     COMPONENT_FIELD_NUMBER: _ClassVar[int]
+    METADATA_FIELD_NUMBER: _ClassVar[int]
     component: _containers.RepeatedCompositeFieldContainer[Component]
-    def __init__(self, component: _Optional[_Iterable[_Union[Component, _Mapping]]] = ...) -> None: ...
+    metadata: _containers.RepeatedCompositeFieldContainer[Report.Metadata]
+    def __init__(self, component: _Optional[_Iterable[_Union[Component, _Mapping]]] = ..., metadata: _Optional[_Iterable[_Union[Report.Metadata, _Mapping]]] = ...) -> None: ...

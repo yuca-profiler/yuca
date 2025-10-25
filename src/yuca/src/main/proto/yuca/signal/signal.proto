@@ -57,4 +57,11 @@ message Component {
 
 message Report {
   repeated Component component = 1;
+  
+  message Metadata {
+    optional string name = 1;
+    optional string value = 2;
+  }
+
+  repeated Metadata metadata = 2;
 }

@@ -67,7 +67,7 @@ public final class SysThermal {
                 .addMetadata(
                     SignalData.Metadata.newBuilder()
                         .setName("socket")
-                        .setValue(Integer.toString(ZONE_SOCKET_MAP.get(reading.zone))))
+                        .setValue(Integer.toString(ZONE_SOCKET_MAP.getOrDefault(reading.zone, -1))))
                 .addMetadata(
                     SignalData.Metadata.newBuilder()
                         .setName("kind")
@@ -85,26 +85,6 @@ public final class SysThermal {
         .setEnd(fromInstant(second.timestamp()))
         .addAllData(between(first.data(), second.data()))
         .build();
-  }
-
-  /**
-   * Reads thermal zone information from /sys/class/thermal/ and returns the number of available
-   * thermal zones.
-   */
-  private static int getThermalZoneCount() {
-    if (!Files.exists(SYS_THERMAL)) {
-      logger.warning("couldn't check the thermal zone count; thermal sysfs likely not available");
-      return 0;
-    }
-    try {
-      return (int)
-          Files.list(SYS_THERMAL)
-              .filter(p -> p.getFileName().toString().contains("thermal_zone"))
-              .count();
-    } catch (Exception e) {
-      logger.warning("couldn't check the thermal zone count; thermal sysfs likely not available");
-      return 0;
-    }
   }
 
   /**
