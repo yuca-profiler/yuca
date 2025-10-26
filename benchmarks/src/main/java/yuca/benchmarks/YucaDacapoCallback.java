@@ -1,6 +1,5 @@
 package yuca.benchmarks;
 
-import java.util.ArrayList;
 import org.dacapo.harness.Callback;
 import org.dacapo.harness.CommandLineArgs;
 import yuca.YucaMonitor;
@@ -10,7 +9,7 @@ import yuca.signal.Report;
 public class YucaDacapoCallback extends Callback {
   private final YucaMonitor yuca = YucaUtil.createYuca();
   // private final ArrayList<Report> reports = new ArrayList<>();
-  
+
   private int iteration = 0;
 
   public YucaDacapoCallback(CommandLineArgs args) {
@@ -30,18 +29,16 @@ public class YucaDacapoCallback extends Callback {
         .ifPresent(
             report -> {
               YucaUtil.summary(report);
-              YucaUtil.writeReports(
-                  List.of(
-                      report.toBuilder()
-                          .addMetadata(
-                              Report.Metadata.newBuilder()
-                                  .setName("iteration")
-                                  .setValue(Integer.toString(iteration++)))
-                          .addMetadata(
-                              Report.Metadata.newBuilder().setName("suite").setValue("dacapo"))
-                          .addMetadata(
-                              Report.Metadata.newBuilder().setName("workload").setValue(benchmark))
-                          .build()));
+              YucaUtil.writeReport(
+                  report.toBuilder()
+                      .addMetadata(
+                          Report.Metadata.newBuilder()
+                              .setName("iteration")
+                              .setValue(Integer.toString(iteration++)))
+                      .addMetadata(Report.Metadata.newBuilder().setName("suite").setValue("dacapo"))
+                      .addMetadata(
+                          Report.Metadata.newBuilder().setName("workload").setValue(benchmark))
+                      .build());
             });
   }
 

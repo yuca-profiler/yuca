@@ -102,6 +102,17 @@ public final class YucaUtil {
     }
   }
 
+  public static void writeReport(Report report) {
+    logger.info("writing yuca report");
+    Path outputPath = YucaUtil.outputPath();
+    try (OutputStream outputStream = Files.newOutputStream(outputPath)) {
+      report.writeTo(outputStream);
+      logger.info(String.format("wrote report to %s", outputPath));
+    } catch (IOException e) {
+      logger.log(Level.WARNING, "unable to write yuca report!", e);
+    }
+  }
+
   private static double sumSignal(Signal signal, int factor) {
     return signal.getIntervalList().stream()
         .mapToDouble(
