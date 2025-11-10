@@ -1,8 +1,8 @@
-DATA_DIR=dacapo-data
+DATA_DIR=dacapo-baseline-data
 mkdir -p "${DATA_DIR}"
 
 ITERATIONS=128
-PERIOD=32
+PERIOD=0
 LOCALE=USA
 
 run_benchmark() {
