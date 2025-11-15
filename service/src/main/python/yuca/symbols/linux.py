@@ -261,14 +261,15 @@ def extract_linux_symbols(report):
                 )
                 symbol, df = PROCESSORS[ctype, unit].process(signal)
                 symbols['data'][symbol] = df
-    logger.info('Adding new signal amortized emissions (GRAMS_OF_CO2)')
-    symbols['data'][CPU_AMORTIZED_EMISSIONS] = compute_amortized_carbon(
-        symbols['data'][SOCKET_TEMPERATURE],
-        symbols['data'][CPU_FREQUENCY],
-        # TODO: need system specs to abstract this
-        40,
-        1800000000
-    )
+    if SOCKET_TEMPERATURE in symbols['data'] and CPU_FREQUENCY in symbols['data']:
+        logger.info('Adding new signal amortized emissions (GRAMS_OF_CO2)')
+        symbols['data'][CPU_AMORTIZED_EMISSIONS] = compute_amortized_carbon(
+            symbols['data'][SOCKET_TEMPERATURE],
+            symbols['data'][CPU_FREQUENCY],
+            # TODO: need system specs to abstract this
+            40,
+            1800000000
+        )
     return symbols
 
 
