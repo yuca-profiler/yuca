@@ -224,9 +224,7 @@ def compute_amortized_carbon(temperature, frequency, normal_temperature, normal_
         dfs.append(df.stack())
     amortized = pd.concat(dfs)
     amortized.name = 'value'
-    amortized = amortized.to_frame()
-    amortized['unit'] = Signal.Unit.DESCRIPTOR.values_by_number[Signal.Unit.GRAMS_OF_CO2_RATE].name
-    return amortized.set_index('unit', append=True).value
+    return amortized
 
 
 # maps component type + unit to processing
