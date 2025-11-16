@@ -115,7 +115,7 @@ def main():
     agg_symbols = []
     for symbols in all_symbols:
         if args.symbol_output:
-            symbol_file = f'{os.path.join(args.output_path, )}.zip'
+            symbol_file = f'{args.symbol_output}.zip'
             write_symbols(symbols, symbol_file)
         if args.agg_output:
             agg_symbols.extend(aggregate_symbols_with_metadata(symbols))
