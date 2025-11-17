@@ -22,12 +22,11 @@ def write_symbols(symbols, file_path):
     with ZipFile(file_path, 'w') as file:
         index = {}
         file.writestr('metadata.json', json.dumps(symbols['metadata']))
-        file.mkdir('data')
         for symbol in symbols['data']:
             key = str(uuid.uuid4())
             index[key] = symbol
             logger.info('writing data for symbol %s as %s', symbol, key)
-            file.writestr(f'data/{key}.csv', symbols['data'][symbol].to_csv())
+            file.writestr(f'{key}.csv', symbols['data'][symbol].to_csv())
         file.writestr('index.json', pickle.dumps(index))
         file.close()
     logger.info('wrote %d symbols to %s', len(index), file_path)
@@ -41,7 +40,7 @@ def load_symbols(file_path):
         symbols['metadata'] = json.loads(file.read('metadata.json'))
         index = pickle.loads(file.read('index.json'))
         for symbol in index:
-            data = file.read(f'data/{symbol}.csv')
+            data = file.read(f'{symbol}.csv')
             # TODO: there must be a better way
             df = pd.read_csv(BytesIO(data))
             df = df.set_index(list(df.columns[:-1])).value

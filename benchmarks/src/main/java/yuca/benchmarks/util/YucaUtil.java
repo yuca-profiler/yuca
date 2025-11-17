@@ -34,6 +34,25 @@ public final class YucaUtil {
             return t;
           });
 
+  public static int getPeriod() {
+    String period = System.getProperty("yuca.benchmarks.period", "10");
+    int periodMillis = DEFAULT_PERIOD_MS;
+    try {
+      periodMillis = Integer.parseInt(period);
+    } catch (Exception e) {
+      return DEFAULT_PERIOD_MS;
+    }
+    if (periodMillis < 0) {
+      logger.info(String.format("can't have a negative period (%d)", periodMillis));
+      return DEFAULT_PERIOD_MS;
+    }
+    if (periodMillis == 0) {
+      logger.info(String.format("yuca period is %d milliseconds", periodMillis));
+      return 0;
+    }
+    return periodMillis;
+  }
+
   public static YucaMonitor createYuca() {
     String period = System.getProperty("yuca.benchmarks.period", "10");
     int periodMillis = DEFAULT_PERIOD_MS;
