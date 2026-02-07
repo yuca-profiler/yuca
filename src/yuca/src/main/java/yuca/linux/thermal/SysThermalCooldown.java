@@ -59,7 +59,7 @@ final class SysThermalCooldown {
     IntStream.range(0, SysThermal.getZoneCount())
         .forEach(
             zone -> {
-              if (SysThermal.getZoneType(zone).equals(type)) {
+              if (SysThermal.getZoneType(zone) == ThermalZoneKind.parseZoneName(type)) {
                 zones.add(zone);
               }
             });
