@@ -422,7 +422,7 @@ def aggregate_symbols(symbols):
                 'timestamp',
                 'socket'
             ]).sum().reset_index()
-            df.value *= df.timestamp.diff() / 1000000000
+            df.value *= df.groupby('socket')['timestamp'].diff().fillna(0) / 1e9
         else:
             df = df.reset_index()
         agg_symbols['data'][symbol] = df.groupby('socket').agg({
