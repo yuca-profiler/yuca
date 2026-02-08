@@ -202,24 +202,28 @@ class TaskEmissionsProcessor(SignalProcessor):
 # Transistor gap temperature
 T = -(0.075 * 0.070 / 0.9 - 0.1897) / (8.6173303 * 10**-5)
 
+# lifespan is 10 years in seconds
+cpu_lifespan = 315360000
+cpu_embodied_carbon = 10274.2
 
 def compute_amortized_carbon(temperature, frequency, normal_temperature, normal_frequency):
     norm = temperature.copy(deep=True)
-    norm[norm < normal_temperature] = normal_temperature
+    norm[norm > normal_temperature] = normal_temperature
     # e^(T/temp) / e^(T/normal temp) = e^(T/temp - T/normal temp) = e^(T * (1 /temp - 1/normal temp))
-    age = np.exp(T * (1 / (273 + temperature) - T / (273 + norm)))
+    age = np.exp(T * (1 / (273 + temperature) - 1 / (273 + norm)))
+
     df = pd.concat(
         [frequency.unstack('cpu'), age],
         axis=1
     )
     dfs = []
     for _, df in df.groupby('socket'):
-        df = df.sort_index().ffill().dropna()
+        df = df.sort_index().ffill().dropna(axis=1, how='all').dropna(axis=0)
         age = df.pop('value')
         for col in df.columns:
             norm = df[col].copy(deep=True)
-            norm[norm < normal_frequency] = normal_frequency
-            df[col] = age * df[col] / df[col]
+            norm[norm > normal_frequency] = normal_frequency
+            df[col] = (age * df[col] / norm) * (cpu_embodied_carbon / cpu_lifespan)
         df.columns.name = 'cpu'
         dfs.append(df.stack())
     amortized = pd.concat(dfs)
