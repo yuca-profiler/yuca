@@ -1,0 +1,158 @@
+package yuca.hdparm;
+
+import static java.util.stream.Collectors.toList;
+import static yuca.util.LoggerUtil.getLogger;
+import static yuca.util.Timestamps.fromInstant;
+import static yuca.util.Timestamps.nowAsInstant;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.logging.Logger;
+import java.util.stream.Collectors;
+import yuca.signal.SignalInterval;
+import yuca.signal.SignalInterval.SignalData;
+
+import yuca.util.NativeUtils;
+import yuca.hdparm.PowerMode;
+
+
+/** Simple wrapper around hdparm access that requires libhdparm.so. */
+public final class Hdparm {
+    private static final Logger logger = getLogger();
+    private static final Path SYS_BLOCK = Paths.get("/sys", "class", "block");
+    private static final List<String> DEVICES = findBlockDevices();
+
+    //create a list of string of avaible devices
+    public static List<String> findBlockDevices(){
+        if(!Files.exists(SYS_BLOCK)){
+            logger.warning("couldn't check the device blocks; block sysfs likely not available");
+            return List.of();
+        }
+        try{
+            return Files.list(SYS_BLOCK)
+                .filter(p -> !Files.exists(p.resolve("partition")))
+                .map(p -> Paths.get("/dev", (p.getFileName()).toString()).toString())
+                .collect(Collectors.toList());
+        } catch (Exception e) {
+            logger.warning("couldn't check the block devices; block sysfs likely not available");
+            return List.of();
+        }
+    }
+
+    /** Returns an {@link HdparmSample} populated by parsing the string returned by {@ readNative}. */
+    public static Optional<HdparmSample> sample() {
+        // if (COMPONENTS.isEmpty()) {
+        // logger.warning("no components founds; hdparm likely not available");
+        // return Optional.empty();
+        // }
+        Instant timestamp = nowAsInstant();
+        ArrayList<HdparmReading> readings = new ArrayList<>();
+        for(String device : DEVICES){
+            PowerMode mode = getPowerMode(device);
+            readings.add(new HdparmReading(device, mode));
+        }
+        return Optional.of(new HdparmSample(timestamp, readings));
+    }
+
+    /** Computes the difference of two {@link PowercapReadings}. */
+    public static List<SignalData> between(List<HdparmReading> first, List<HdparmReading> second) {
+        // if (first.device != second.device) {
+        //     throw new IllegalArgumentException(
+        //         String.format(
+        //             "readings are not from the same domain (%d != %d)", first.device, second.device));
+        // }
+        ArrayList<SignalData> states = new ArrayList<>();
+        for(HdparmReading reading : first){
+            states.add(
+                SignalData.newBuilder()
+                .addMetadata(
+                    SignalData.Metadata.newBuilder()
+                        .setName("device")
+                        .setValue(reading.device))
+                .addMetadata(
+                        SignalData.Metadata.newBuilder().setName("mode").setValue(reading.mode.getState()))
+                // .setValue(reading.mode.getState())
+                .build());
+        }
+        return states;
+            
+    }
+
+    // public static List<SignalData> between(
+    //     List<HdparmReading> first, List<HdparmReading> second) {
+    //     Map<Integer, ThermalZoneTemperature> secondMap =
+    //         second.stream().collect(toMap(r -> r.zone, r -> r));
+    //     ArrayList<SignalData> temperatures = new ArrayList<>();
+    //     for (ThermalZoneTemperature reading : first) {
+    //     if (secondMap.containsKey(reading.zone)) {
+    //         ThermalZoneTemperature other = secondMap.get(reading.zone);
+    //         temperatures.add(
+    //             SignalData.newBuilder()
+    //                 .addMetadata(
+    //                     SignalData.Metadata.newBuilder()
+    //                         .setName("zone")
+    //                         .setValue(Integer.toString(reading.zone)))
+    //                 .addMetadata(
+    //                     SignalData.Metadata.newBuilder().setName("type").setValue(reading.type))
+    //                 .setValue(reading.temperature)
+    //                 .build());
+    //     }
+    //     }
+    //     return temperatures;
+    // }
+
+    public static SignalInterval difference(HdparmSample first, HdparmSample second) {
+        return SignalInterval.newBuilder()
+            .setStart(fromInstant(first.timestamp()))
+            .setEnd(fromInstant(second.timestamp()))
+            .addAllData(between(first.data(), second.data()))
+            .build();
+    }
+    public static native int powerMode(String device); //returns jint from c
+
+    public static PowerMode getPowerMode(String device) {
+        int rawValue = powerMode(device);
+        return PowerMode.fromValue(rawValue);
+    }
+
+    static {
+        try {
+            NativeUtils.loadLibraryFromJar("/yuca/src/main/c/yuca/hdparm/libhdparm.so");
+        } catch (Exception e) {
+            e.printStackTrace();
+            // Fallback to system library
+            try {
+                System.loadLibrary("hdparm");
+            } catch (UnsatisfiedLinkError err) {
+                err.printStackTrace();
+            }
+        }
+    }
+
+    public static void main(String[] args) {
+        System.out.println("Testing hdparm JNI wrapper...");
+        try {
+            // String mode = getPowerMode("/dev/sda");
+            // System.out.println("Power mode: " + mode);
+            Optional<HdparmSample> sample = sample();
+            HdparmSample s = sample.orElseThrow();
+            List<HdparmReading> readings = s.data();
+            System.out.println(sample);
+            List<String> devices = findBlockDevices();
+            for(HdparmReading r: readings){
+                System.out.println(r.device + ' ' + r.mode.getState());
+            }
+        } catch (UnsatisfiedLinkError e) {
+            System.err.println("Failed to call native method: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    private Hdparm() {}
+}
