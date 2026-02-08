@@ -4,8 +4,8 @@ import numpy as np
 import pandas as pd
 
 from yuca.signal_pb2 import Signal
-from yuca.symbols.symbol import SOCKET_POWER
-from yuca.symbols.symbol import CPU_AMORTIZED_EMISSIONS, SOCKET_OPERATIONAL_EMISSIONS
+from yuca.symbols.symbol import SOCKET_POWER, SOCKET_PACKAGE_POWER, SOCKET_DRAM_POWER
+from yuca.symbols.symbol import CPU_AMORTIZED_EMISSIONS, SOCKET_OPERATIONAL_EMISSIONS, SOCKET_PACKAGE_OPERATIONAL_EMISSIONS, SOCKET_DRAM_OPERATIONAL_EMISSIONS
 from yuca.symbols.symbol import CPU_FREQUENCY, SOCKET_TEMPERATURE
 from yuca.symbols.symbol import TASK_POWER, TASK_OPERATIONAL_EMISSIONS
 
@@ -52,6 +52,63 @@ class SystemEnergyProcessor(SignalProcessor):
             ]
         ).set_index(['timestamp', 'socket', 'component']).value
 
+class SystemPackagePowerProcessor(SignalProcessor):
+    index = SOCKET_PACKAGE_POWER
+
+    def _process_internal(self, signal):
+        power = []
+        for interval in signal.interval:
+            start = 1000000000 * interval.start.secs + interval.start.nanos
+            end = 1000000000 * interval.end.secs + interval.end.nanos
+            elapsed = (end - start) / 1000000000
+            for data in interval.data:
+                metadata = {m.name: m.value for m in data.metadata}
+                if metadata.get('component') != 'package':
+                    continue
+                power.append([
+                    start,
+                    int(metadata['socket']),
+                    metadata['component'],
+                    data.value / elapsed
+                ])
+        return pd.DataFrame(
+            data=power,
+            columns=[
+                'timestamp',
+                'socket',
+                'component',
+                'value'
+            ]
+        ).set_index(['timestamp', 'socket', 'component']).value
+
+class SystemDramPowerProcessor(SignalProcessor):
+    index = SOCKET_DRAM_POWER
+
+    def _process_internal(self, signal):
+        power = []
+        for interval in signal.interval:
+            start = 1000000000 * interval.start.secs + interval.start.nanos
+            end = 1000000000 * interval.end.secs + interval.end.nanos
+            elapsed = (end - start) / 1000000000
+            for data in interval.data:
+                metadata = {m.name: m.value for m in data.metadata}
+                if metadata.get('component') != 'dram':
+                    continue
+                power.append([
+                    start,
+                    int(metadata['socket']),
+                    metadata['component'],
+                    data.value / elapsed
+                ])
+        return pd.DataFrame(
+            data=power,
+            columns=[
+                'timestamp',
+                'socket',
+                'component',
+                'value'
+            ]
+        ).set_index(['timestamp', 'socket', 'component']).value
 
 class SystemEmissionsProcessor(SignalProcessor):
     index = SOCKET_OPERATIONAL_EMISSIONS
@@ -64,6 +121,64 @@ class SystemEmissionsProcessor(SignalProcessor):
             elapsed = (end - start) / 1000000000
             for data in interval.data:
                 metadata = {m.name: m.value for m in data.metadata}
+                emissions.append([
+                    start,
+                    int(metadata['socket']),
+                    metadata['component'],
+                    data.value / elapsed
+                ])
+        return pd.DataFrame(
+            data=emissions,
+            columns=[
+                'timestamp',
+                'socket',
+                'component',
+                'value'
+            ]
+        ).set_index(['timestamp', 'socket', 'component']).value
+
+class SystemPackageEmissionsProcessor(SignalProcessor):
+    index = SOCKET_PACKAGE_OPERATIONAL_EMISSIONS
+
+    def _process_internal(self, signal):
+        emissions = []
+        for interval in signal.interval:
+            start = 1000000000 * interval.start.secs + interval.start.nanos
+            end = 1000000000 * interval.end.secs + interval.end.nanos
+            elapsed = (end - start) / 1000000000
+            for data in interval.data:
+                metadata = {m.name: m.value for m in data.metadata}
+                if metadata.get('component') != 'package':
+                    continue
+                emissions.append([
+                    start,
+                    int(metadata['socket']),
+                    metadata['component'],
+                    data.value / elapsed
+                ])
+        return pd.DataFrame(
+            data=emissions,
+            columns=[
+                'timestamp',
+                'socket',
+                'component',
+                'value'
+            ]
+        ).set_index(['timestamp', 'socket', 'component']).value
+
+class SystemDramEmissionsProcessor(SignalProcessor):
+    index = SOCKET_DRAM_OPERATIONAL_EMISSIONS
+
+    def _process_internal(self, signal):
+        emissions = []
+        for interval in signal.interval:
+            start = 1000000000 * interval.start.secs + interval.start.nanos
+            end = 1000000000 * interval.end.secs + interval.end.nanos
+            elapsed = (end - start) / 1000000000
+            for data in interval.data:
+                metadata = {m.name: m.value for m in data.metadata}
+                if metadata.get('component') != 'dram':
+                    continue
                 emissions.append([
                     start,
                     int(metadata['socket']),
@@ -229,8 +344,16 @@ def compute_amortized_carbon(temperature, frequency, normal_temperature, normal_
 
 # maps component type + unit to processing
 PROCESSORS = {
-    ('linux_system', Signal.Unit.JOULES): SystemEnergyProcessor(),
-    ('linux_system', Signal.Unit.GRAMS_OF_CO2): SystemEmissionsProcessor(),
+    ('linux_system', Signal.Unit.JOULES): [
+        SystemEnergyProcessor(),
+        SystemPackagePowerProcessor(),
+        SystemDramPowerProcessor(),
+    ],
+    ('linux_system', Signal.Unit.GRAMS_OF_CO2): [
+        SystemEmissionsProcessor(),
+        SystemPackageEmissionsProcessor(),
+        SystemDramEmissionsProcessor(),
+    ],
     ('linux_system', Signal.Unit.HERTZ): SystemFrequencyProcessor(),
     ('linux_system', Signal.Unit.CELSIUS): SystemTemperatureProcessor(),
     ('linux_process', Signal.Unit.JOULES): TaskEnergyProcessor(),
@@ -253,12 +376,19 @@ def extract_linux_symbols(report):
             unit_name = Signal.Unit.DESCRIPTOR.values_by_number[signal.unit].name
             logger.info(' - Processing signal %s (%s)', source, unit_name)
             if (ctype, unit) in PROCESSORS:
-                logger.info(
-                    ' - Processing with %s',
-                    type(PROCESSORS[ctype, unit])
-                )
-                symbol, df = PROCESSORS[ctype, unit].process(signal)
-                symbols['data'][symbol] = df
+                processors = PROCESSORS[ctype, unit]
+
+                if not isinstance(processors, list):
+                    processors = [processors]
+
+                for processor in processors:
+                    logger.info(
+                        ' - Processing with %s',
+                        type(processor)
+                    )
+                    symbol, df = processor.process(signal)
+                    symbols['data'][symbol] = df
+
     if SOCKET_TEMPERATURE in symbols['data'] and CPU_FREQUENCY in symbols['data']:
         logger.info('Adding new signal amortized emissions (GRAMS_OF_CO2)')
         symbols['data'][CPU_AMORTIZED_EMISSIONS] = compute_amortized_carbon(
@@ -278,8 +408,12 @@ def aggregate_symbols(symbols):
     for symbol in symbols['data']:
         if symbol in [
             SOCKET_POWER,
+            SOCKET_PACKAGE_POWER,
+            SOCKET_DRAM_POWER,
             CPU_FREQUENCY,
             SOCKET_OPERATIONAL_EMISSIONS,
+            SOCKET_PACKAGE_OPERATIONAL_EMISSIONS,
+            SOCKET_DRAM_OPERATIONAL_EMISSIONS,
             CPU_AMORTIZED_EMISSIONS,
             TASK_POWER,
             TASK_OPERATIONAL_EMISSIONS,
