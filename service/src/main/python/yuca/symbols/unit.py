@@ -24,3 +24,7 @@ class PhysicalUnit(Enum):
 class EmissionKind(Enum):
     OPERATIONAL = 1
     AMORTIZED = 2
+
+class SocketComponentKind(Enum):
+    PACKAGE = 1
+    DRAM = 2
