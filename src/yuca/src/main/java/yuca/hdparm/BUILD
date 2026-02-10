@@ -34,9 +34,20 @@ java_binary(
 )
 
 java_binary(
-    name = "smoke_test",
+    name = "lazy_smoke_test",
     main_class = "yuca.hdparm.Hdparm",
     srcs = ["Hdparm.java"],
+    deps = [
+        ":hdparm",
+        "//src/yuca/src/main/java/yuca/util",
+        "//src/yuca/src/main/proto/yuca/signal:signal_java_protos",
+    ],
+)
+
+java_binary(
+    name = "smoke_test",
+    main_class = "yuca.hdparm.HdparmSmokeTest",
+    srcs = ["HdparmSmokeTest.java"],
     deps = [
         ":hdparm",
         "//src/yuca/src/main/java/yuca/util",

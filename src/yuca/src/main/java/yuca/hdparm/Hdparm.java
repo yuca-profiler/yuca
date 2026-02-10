@@ -46,7 +46,7 @@ public final class Hdparm {
     }
 
     /** Returns an {@link HdparmSample} populated by parsing the string returned by {@ readNative}. */
-    public static Optional<HdparmSample> sample() {
+    public static HdparmSample sample() {
         // if (COMPONENTS.isEmpty()) {
         // logger.warning("no components founds; hdparm likely not available");
         // return Optional.empty();
@@ -57,7 +57,7 @@ public final class Hdparm {
             PowerMode mode = getPowerMode(device);
             readings.add(new HdparmReading(device, mode));
         }
-        return Optional.of(new HdparmSample(timestamp, readings));
+        return new HdparmSample(timestamp, readings);
     }
 
     /** Computes the difference of two {@link PowercapReadings}. */
@@ -77,35 +77,12 @@ public final class Hdparm {
                         .setValue(reading.device))
                 .addMetadata(
                         SignalData.Metadata.newBuilder().setName("mode").setValue(reading.mode.getState()))
-                // .setValue(reading.mode.getState())
+                .setValue(reading.mode.getValue())
                 .build());
         }
         return states;
             
     }
-
-    // public static List<SignalData> between(
-    //     List<HdparmReading> first, List<HdparmReading> second) {
-    //     Map<Integer, ThermalZoneTemperature> secondMap =
-    //         second.stream().collect(toMap(r -> r.zone, r -> r));
-    //     ArrayList<SignalData> temperatures = new ArrayList<>();
-    //     for (ThermalZoneTemperature reading : first) {
-    //     if (secondMap.containsKey(reading.zone)) {
-    //         ThermalZoneTemperature other = secondMap.get(reading.zone);
-    //         temperatures.add(
-    //             SignalData.newBuilder()
-    //                 .addMetadata(
-    //                     SignalData.Metadata.newBuilder()
-    //                         .setName("zone")
-    //                         .setValue(Integer.toString(reading.zone)))
-    //                 .addMetadata(
-    //                     SignalData.Metadata.newBuilder().setName("type").setValue(reading.type))
-    //                 .setValue(reading.temperature)
-    //                 .build());
-    //     }
-    //     }
-    //     return temperatures;
-    // }
 
     public static SignalInterval difference(HdparmSample first, HdparmSample second) {
         return SignalInterval.newBuilder()
@@ -134,17 +111,15 @@ public final class Hdparm {
             }
         }
     }
-
+    
     public static void main(String[] args) {
         System.out.println("Testing hdparm JNI wrapper...");
         try {
-            // String mode = getPowerMode("/dev/sda");
-            // System.out.println("Power mode: " + mode);
-            Optional<HdparmSample> sample = sample();
-            HdparmSample s = sample.orElseThrow();
-            List<HdparmReading> readings = s.data();
-            System.out.println(sample);
-            List<String> devices = findBlockDevices();
+            for (String d: DEVICES){
+                System.out.println(d);
+            }
+            HdparmSample sample = Hdparm.sample();
+            List<HdparmReading> readings = sample.data();
             for(HdparmReading r: readings){
                 System.out.println(r.device + ' ' + r.mode.getState());
             }

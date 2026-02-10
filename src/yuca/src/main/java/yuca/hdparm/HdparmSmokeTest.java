@@ -2,6 +2,10 @@ package yuca.hdparm;
 
 import yuca.util.NativeUtils;
 import yuca.hdparm.PowerMode;
+import yuca.hdparm.Hdparm;
+import yuca.hdparm.HdparmReading;
+
+import java.util.List;
 
 public final class HdparmSmokeTest {
     public static native int powerMode(String device); //returns jint from c
@@ -28,8 +32,11 @@ public final class HdparmSmokeTest {
     public static void main(String[] args) {
         System.out.println("Testing hdparm JNI wrapper...");
         try {
-            String mode = getPowerMode("/dev/sda");
-            System.out.println("Power mode: " + mode);
+            HdparmSample sample = Hdparm.sample();
+            List<HdparmReading> readings = sample.data();
+            for(HdparmReading r: readings){
+                System.out.println(r.device + ' ' + r.mode.getState());
+            }
         } catch (UnsatisfiedLinkError e) {
             System.err.println("Failed to call native method: " + e.getMessage());
             e.printStackTrace();
