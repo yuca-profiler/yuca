@@ -54,3 +54,14 @@ java_binary(
         "//src/yuca/src/main/proto/yuca/signal:signal_java_protos",
     ],
 )
+
+java_binary(
+    name = "drive_power_smoke",
+    main_class = "yuca.hdparm.DrivePowerRegistry",
+    srcs = ["DrivePowerRegistry.java"],
+    deps = [
+        ":hdparm",
+        "//src/yuca/src/main/java/yuca/util",
+        "//src/yuca/src/main/proto/yuca/signal:signal_java_protos",
+    ],
+)

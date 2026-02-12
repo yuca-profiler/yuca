@@ -8,6 +8,7 @@ import yuca.hdparm.HdparmReading;
 import java.util.List;
 
 public final class HdparmSmokeTest {
+    /*
     public static native int powerMode(String device); //returns jint from c
 
     public static String getPowerMode(String device) {
@@ -42,6 +43,6 @@ public final class HdparmSmokeTest {
             e.printStackTrace();
         }
     }
-
+    */
     private HdparmSmokeTest() {}
 }
