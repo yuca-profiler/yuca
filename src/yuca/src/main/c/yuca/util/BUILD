@@ -1,6 +1,9 @@
 cc_library(
     name = "time-lib",
-    visibility = ["//src/yuca/src/main/c/yuca/rapl:__pkg__"],
+    visibility = [
+        "//src/yuca/src/main/c/yuca/rapl:__pkg__",
+        "//src/yuca/src/main/c/yuca/hdparm:__pkg__",
+        ],
     srcs = glob(["*.c"]),
     hdrs = glob(["*.h"]),
     deps = ["//src/yuca/src/main/c:copy_jni_hdr_lib"],

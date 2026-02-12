@@ -20,6 +20,8 @@ import yuca.linux.jiffies.SystemSample;
 import yuca.linux.jiffies.TaskEnergyAccounting;
 import yuca.linux.thermal.SysThermal;
 import yuca.linux.thermal.ThermalZonesSample;
+import yuca.hdparm.Hdparm;
+import yuca.hdparm.HdparmSample;
 import yuca.signal.Component;
 import yuca.signal.Report;
 import yuca.signal.Signal;
@@ -52,6 +54,8 @@ public final class YucaApplicationMonitor implements YucaMonitor {
   private SamplingFuture<ThermalZonesSample> systemTemperatureFuture;
   private SamplingFuture<CpuFrequencySample> frequencyFuture;
 
+  private SamplingFuture<HdparmSample> hdparmFuture;
+
   public YucaApplicationMonitor(
       int periodMillis, long processId, ScheduledExecutorService executor) {
     this.periodMillis = periodMillis;
@@ -79,6 +83,9 @@ public final class YucaApplicationMonitor implements YucaMonitor {
         systemTemperatureFuture =
             SamplingFuture.fixedPeriodMillis(SysThermal::sample, periodMillis, executor);
         frequencyFuture = SamplingFuture.fixedPeriodMillis(CpuFreq::sample, periodMillis, executor);
+
+        hdparmFuture =
+            SamplingFuture.fixedPeriodMillis(Hdparm::sample, periodMillis, executor);
         isRunning = true;
       }
     }
@@ -155,6 +162,38 @@ public final class YucaApplicationMonitor implements YucaMonitor {
                 Signal.Unit.HERTZ,
                 "/sys/devices/system/cpu/cpu_i/cpufreq")
             .ifPresent(systemComponent::addSignal);
+
+        logger.info("creating disk energy signal");
+        Optional<Signal> diskEnergy =
+        createPhysicalSignal(
+                forwardApply(hdparmFuture.get(), Hdparm::difference),
+                Signal.Unit.JOULES,
+                "/sys/class/block");
+        diskEnergy.ifPresent(systemComponent::addSignal);
+
+        // Optional<Signal> diskEnergy =
+        //     createPhysicalSignal(
+        //         forwardApply(
+        //             raplFuture.get().stream()
+        //                 .filter(Optional::isPresent)
+        //                 .map(Optional::get)
+        //                 .collect(toList()),
+        //             raplSource::difference),
+        //         Signal.Unit.JOULES,
+        //         raplSource.name);
+        // raplEnergy.ifPresent(systemComponent::addSignal);
+
+        // Optional<Signal> hdparmActivity =
+        //     createPhysicalSignal(
+        //         forwardApply(
+        //             hdparmFuture.get(),
+        //             Hdparm::difference),
+        //         Signal.Unit.JOULES,
+        //         raplSource.name);
+
+        // hdparmActivity.ifPresent(systemComponent::addSignal);
+
+
         monotonicTimeFuture = null;
         systemTemperatureFuture = null;
         processFuture = null;
@@ -162,12 +201,22 @@ public final class YucaApplicationMonitor implements YucaMonitor {
         raplFuture = null;
         frequencyFuture = null;
 
+        hdparmFuture = null;
+
         // virtual signals
         if (raplEnergy.isEmpty()) {
           logger.info("not creating rapl emissions: no rapl energy");
         } else {
           logger.info("creating rapl emissions signal");
           systemComponent.addSignal(convertToEmissions(raplEnergy.get()));
+        }
+
+        // virtual signals
+        if (diskEnergy.isEmpty()) {
+          logger.info("not creating disk emissions: no hdparm energy");
+        } else {
+          logger.info("creating disk emissions signal");
+          systemComponent.addSignal(convertToEmissions(diskEnergy.get()));
         }
 
         if (processJiffies.isEmpty() && systemJiffies.isEmpty()) {
@@ -201,7 +250,7 @@ public final class YucaApplicationMonitor implements YucaMonitor {
                               TaskEnergyAccounting::computeTaskEnergy))
                       .build();
               processComponent.addSignal(processEnergy);
-
+              
               logger.info("creating linux process emissions signal");
               processComponent.addSignal(convertToEmissions(processEnergy));
             } else {

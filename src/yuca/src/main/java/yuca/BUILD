@@ -10,6 +10,7 @@ java_library(
         "//src/yuca/src/main/java/yuca/linux/thermal",
         "//src/yuca/src/main/java/yuca/emissions",
         "//src/yuca/src/main/java/yuca/rapl",
+        "//src/yuca/src/main/java/yuca/hdparm",
         "//src/yuca/src/main/java/yuca/util",
         "//src/yuca/src/main/proto/yuca/signal:signal_java_protos",
     ],
@@ -20,6 +21,7 @@ java_library(
         "//src/yuca/src/main/java/yuca/linux/thermal",
         "//src/yuca/src/main/java/yuca/emissions",
         "//src/yuca/src/main/java/yuca/rapl",
+        "//src/yuca/src/main/java/yuca/hdparm",
         "//src/yuca/src/main/java/yuca/util",
         "//src/yuca/src/main/proto/yuca/signal:signal_java_protos",
     ]

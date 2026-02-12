@@ -4,8 +4,8 @@ import numpy as np
 import pandas as pd
 
 from yuca.signal_pb2 import Signal
-from yuca.symbols.symbol import SOCKET_POWER
-from yuca.symbols.symbol import CPU_AMORTIZED_EMISSIONS, SOCKET_OPERATIONAL_EMISSIONS
+from yuca.symbols.symbol import SOCKET_POWER, DISK_POWER
+from yuca.symbols.symbol import CPU_AMORTIZED_EMISSIONS, SOCKET_OPERATIONAL_EMISSIONS, DISK_OPERATIONAL_EMISSIONS
 from yuca.symbols.symbol import CPU_FREQUENCY, SOCKET_TEMPERATURE
 from yuca.symbols.symbol import TASK_POWER, TASK_OPERATIONAL_EMISSIONS
 
@@ -24,6 +24,71 @@ class SignalProcessor:
     def _process_internal(self, signal):
         pass
 
+class SystemDiskEmissionsProcessor(SignalProcessor):
+    index = DISK_OPERATIONAL_EMISSIONS
+
+    def _process_internal(self, signal):
+        emissions = []
+        for interval in signal.interval:
+            start = 1000000000 * interval.start.secs + interval.start.nanos
+            end = 1000000000 * interval.end.secs + interval.end.nanos
+            elapsed = (end - start) / 1000000000
+            for data in interval.data:
+                metadata = {m.name: m.value for m in data.metadata}
+                if 'device' not in metadata:
+                    return None
+                emissions.append([
+                    start,
+                    0,
+                    # int(metadata['socket']),
+                    metadata['device'],
+                    metadata['model'],
+                    data.value / elapsed
+                ])
+        return pd.DataFrame(
+            data=emissions,
+            columns=[
+                'timestamp',
+                'socket',
+                'device',
+                'model',
+                'value'
+            ]
+        ).set_index(['timestamp', 'socket', 'device', 'model']).value
+
+class SystemDiskPowerProcessor(SignalProcessor):
+    index = DISK_POWER
+
+    def _process_internal(self, signal):
+        power = []
+        for interval in signal.interval:
+            start = 1000000000 * interval.start.secs + interval.start.nanos
+            end = 1000000000 * interval.end.secs + interval.end.nanos
+            elapsed = (end - start) / 1000000000
+            for data in interval.data:
+                metadata = {m.name: m.value for m in data.metadata}
+                if 'device' not in metadata:
+                    return None
+                    # return pd.DataFrame(columns=['timestamp', 'socket', 'value']).set_index(['timestamp', 'socket']).value
+                # print(metadata)
+                # print(data.value)
+                power.append([
+                    start,
+                    0,
+                    metadata['device'],
+                    metadata['model'],
+                    data.value / elapsed
+                ])
+        return pd.DataFrame(
+            data=power,
+            columns=[
+                'timestamp',
+                'socket',
+                'device',
+                'model',
+                'value'
+            ]
+        ).set_index(['timestamp', 'socket', 'device', 'model']).value
 
 class SystemEnergyProcessor(SignalProcessor):
     index = SOCKET_POWER
@@ -36,6 +101,9 @@ class SystemEnergyProcessor(SignalProcessor):
             elapsed = (end - start) / 1000000000
             for data in interval.data:
                 metadata = {m.name: m.value for m in data.metadata}
+                if 'socket' not in metadata:
+                    return None
+                    # return  pd.DataFrame(columns=['timestamp', 'socket', 'value']).set_index(['timestamp', 'socket']).value
                 power.append([
                     start,
                     int(metadata['socket']),
@@ -64,6 +132,8 @@ class SystemEmissionsProcessor(SignalProcessor):
             elapsed = (end - start) / 1000000000
             for data in interval.data:
                 metadata = {m.name: m.value for m in data.metadata}
+                if 'socket' not in metadata:
+                    return None
                 emissions.append([
                     start,
                     int(metadata['socket']),
@@ -79,7 +149,6 @@ class SystemEmissionsProcessor(SignalProcessor):
                 'value'
             ]
         ).set_index(['timestamp', 'socket', 'component']).value
-
 
 class SystemTemperatureProcessor(SignalProcessor):
     index = SOCKET_TEMPERATURE
@@ -229,12 +298,18 @@ def compute_amortized_carbon(temperature, frequency, normal_temperature, normal_
 
 # maps component type + unit to processing
 PROCESSORS = {
-    ('linux_system', Signal.Unit.JOULES): SystemEnergyProcessor(),
-    ('linux_system', Signal.Unit.GRAMS_OF_CO2): SystemEmissionsProcessor(),
-    ('linux_system', Signal.Unit.HERTZ): SystemFrequencyProcessor(),
-    ('linux_system', Signal.Unit.CELSIUS): SystemTemperatureProcessor(),
-    ('linux_process', Signal.Unit.JOULES): TaskEnergyProcessor(),
-    ('linux_process', Signal.Unit.GRAMS_OF_CO2): TaskEmissionsProcessor(),
+    ('linux_system', Signal.Unit.JOULES): [
+        SystemEnergyProcessor(),
+        SystemDiskPowerProcessor(),
+        ],
+    ('linux_system', Signal.Unit.GRAMS_OF_CO2): [
+        SystemEmissionsProcessor(),
+        SystemDiskEmissionsProcessor(),
+        ],
+    ('linux_system', Signal.Unit.HERTZ): [SystemFrequencyProcessor()],
+    ('linux_system', Signal.Unit.CELSIUS): [SystemTemperatureProcessor()],
+    ('linux_process', Signal.Unit.JOULES): [TaskEnergyProcessor()],
+    ('linux_process', Signal.Unit.GRAMS_OF_CO2): [TaskEmissionsProcessor()],
 }
 
 
@@ -253,12 +328,25 @@ def extract_linux_symbols(report):
             unit_name = Signal.Unit.DESCRIPTOR.values_by_number[signal.unit].name
             logger.info(' - Processing signal %s (%s)', source, unit_name)
             if (ctype, unit) in PROCESSORS:
-                logger.info(
-                    ' - Processing with %s',
-                    type(PROCESSORS[ctype, unit])
-                )
-                symbol, df = PROCESSORS[ctype, unit].process(signal)
-                symbols['data'][symbol] = df
+                # logger.info(
+                #     ' - Processing with %s',
+                #     type(PROCESSORS[ctype, unit])
+                # )
+                # symbol, df = PROCESSORS[ctype, unit].process(signal)
+                # symbols['data'][symbol] = df
+                processors = PROCESSORS[ctype, unit]
+                for processor in processors:
+                    logger.info(
+                        ' - Processing with %s',
+                        type(processor)
+                    )
+                    symbol, df = processor.process(signal)
+                    if df is None:
+                        continue
+                    symbols['data'][symbol] = df
+                    # print(symbols['data'][symbol])
+                    # print(symbol)
+                    # print(symbols['data'][symbol])
     if SOCKET_TEMPERATURE in symbols['data'] and CPU_FREQUENCY in symbols['data']:
         logger.info('Adding new signal amortized emissions (GRAMS_OF_CO2)')
         symbols['data'][CPU_AMORTIZED_EMISSIONS] = compute_amortized_carbon(
@@ -276,20 +364,24 @@ def aggregate_symbols(symbols):
     agg_symbols['data'] = {}
     agg_symbols['metadata'] = symbols['metadata']
     for symbol in symbols['data']:
+        df = symbols['data'][symbol].groupby([
+                'timestamp',
+                'socket'
+        ]).sum().reset_index()
         if symbol in [
+            DISK_POWER,
+            DISK_OPERATIONAL_EMISSIONS,
             SOCKET_POWER,
-            CPU_FREQUENCY,
             SOCKET_OPERATIONAL_EMISSIONS,
             CPU_AMORTIZED_EMISSIONS,
             TASK_POWER,
             TASK_OPERATIONAL_EMISSIONS,
         ]:
-            df = symbols['data'][symbol].groupby([
-                'timestamp',
-                'socket'
-            ]).sum().reset_index()
-            df.value *= df.timestamp.diff() / 1000000000
+            df.value *= df.groupby('socket')['timestamp'].diff().fillna(0) / 1e9
+            # df.value *= df.timestamp.diff() / 1000000000
         else:
+            # for values that don't need to be aggregated up
+            print(f"{symbol} does not need to be aggregated")
             df = df.reset_index()
         agg_symbols['data'][symbol] = df.groupby('socket').agg({
             'value': ('mean', 'median', 'sum', 'std'),
