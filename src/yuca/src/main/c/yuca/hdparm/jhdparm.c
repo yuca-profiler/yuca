@@ -53,7 +53,7 @@ int get_powermode(const char *devname) {
     // }
     
     close(fd);
-    return (int)args[2];
+    return (int) args[2];
 }
 
 JNIEXPORT jint JNICALL
@@ -66,5 +66,5 @@ Java_yuca_hdparm_Hdparm_powerMode(JNIEnv *env, jclass jcls, jstring jdevice) {
 
     (*env)->ReleaseStringUTFChars(env, jdevice, device);
 
-    return (jint)result;
+    return (jint) result;
 }
