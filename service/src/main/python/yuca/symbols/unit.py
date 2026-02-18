@@ -28,3 +28,5 @@ class EmissionKind(Enum):
 class SocketComponentKind(Enum):
     PACKAGE = 1
     DRAM = 2
+    UNCORE = 3
+    GPU = 4
