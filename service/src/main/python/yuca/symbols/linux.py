@@ -8,6 +8,7 @@ from yuca.symbols.symbol import SOCKET_POWER, SOCKET_PACKAGE_POWER, SOCKET_DRAM_
 from yuca.symbols.symbol import CPU_AMORTIZED_EMISSIONS, SOCKET_OPERATIONAL_EMISSIONS, SOCKET_PACKAGE_OPERATIONAL_EMISSIONS, SOCKET_DRAM_OPERATIONAL_EMISSIONS
 from yuca.symbols.symbol import CPU_FREQUENCY, SOCKET_TEMPERATURE
 from yuca.symbols.symbol import TASK_POWER, TASK_OPERATIONAL_EMISSIONS
+from yuca.symbols.unit import SocketComponentKind
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(
@@ -57,13 +58,18 @@ class SystemPackagePowerProcessor(SignalProcessor):
 
     def _process_internal(self, signal):
         power = []
+        component = None
         for interval in signal.interval:
             start = 1000000000 * interval.start.secs + interval.start.nanos
             end = 1000000000 * interval.end.secs + interval.end.nanos
             elapsed = (end - start) / 1000000000
             for data in interval.data:
                 metadata = {m.name: m.value for m in data.metadata}
-                if metadata.get('component') != 'package':
+                try:
+                    component = SocketComponentKind[metadata['component'].upper()]
+                except KeyError:
+                    print(f"{metadata['component']} is not a valid SocketComponentKind")
+                if component != SocketComponentKind.PACKAGE:
                     continue
                 power.append([
                     start,
@@ -92,7 +98,11 @@ class SystemDramPowerProcessor(SignalProcessor):
             elapsed = (end - start) / 1000000000
             for data in interval.data:
                 metadata = {m.name: m.value for m in data.metadata}
-                if metadata.get('component') != 'dram':
+                try:
+                    component = SocketComponentKind[metadata['component'].upper()]
+                except KeyError:
+                    print(f"{metadata['component']} is not a valid SocketComponentKind")
+                if component != SocketComponentKind.DRAM:
                     continue
                 power.append([
                     start,
@@ -142,13 +152,18 @@ class SystemPackageEmissionsProcessor(SignalProcessor):
 
     def _process_internal(self, signal):
         emissions = []
+        component = None
         for interval in signal.interval:
             start = 1000000000 * interval.start.secs + interval.start.nanos
             end = 1000000000 * interval.end.secs + interval.end.nanos
             elapsed = (end - start) / 1000000000
             for data in interval.data:
                 metadata = {m.name: m.value for m in data.metadata}
-                if metadata.get('component') != 'package':
+                try:
+                    component = SocketComponentKind[metadata['component'].upper()]
+                except KeyError:
+                    print(f"{metadata['component']} is not a valid SocketComponentKind")
+                if component != SocketComponentKind.PACKAGE:
                     continue
                 emissions.append([
                     start,
@@ -177,7 +192,11 @@ class SystemDramEmissionsProcessor(SignalProcessor):
             elapsed = (end - start) / 1000000000
             for data in interval.data:
                 metadata = {m.name: m.value for m in data.metadata}
-                if metadata.get('component') != 'dram':
+                try:
+                    component = SocketComponentKind[metadata['component'].upper()]
+                except KeyError:
+                    print(f"{metadata['component']} is not a valid SocketComponentKind")
+                if component != SocketComponentKind.DRAM:
                     continue
                 emissions.append([
                     start,
