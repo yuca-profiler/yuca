@@ -22,14 +22,14 @@ SOCKET_OPERATIONAL_EMISSIONS = (
 SOCKET_PACKAGE_OPERATIONAL_EMISSIONS = (
     LogicalUnit.SOCKET,
     PhysicalUnit.GRAMS_OF_CO2_RATE,
-    EmissionKind.OPERATIONAL,
-    SocketComponentKind.PACKAGE
+    SocketComponentKind.PACKAGE,
+    EmissionKind.OPERATIONAL
 )
 SOCKET_DRAM_OPERATIONAL_EMISSIONS = (
     LogicalUnit.SOCKET,
     PhysicalUnit.GRAMS_OF_CO2_RATE,
-    EmissionKind.OPERATIONAL,
-    SocketComponentKind.DRAM
+    SocketComponentKind.DRAM,
+    EmissionKind.OPERATIONAL
 )
 SOCKET_TEMPERATURE = (
     LogicalUnit.SOCKET,
