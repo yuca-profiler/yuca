@@ -354,10 +354,10 @@ PROCESSORS = {
         SystemPackageEmissionsProcessor(),
         SystemDramEmissionsProcessor(),
     ],
-    ('linux_system', Signal.Unit.HERTZ): SystemFrequencyProcessor(),
-    ('linux_system', Signal.Unit.CELSIUS): SystemTemperatureProcessor(),
-    ('linux_process', Signal.Unit.JOULES): TaskEnergyProcessor(),
-    ('linux_process', Signal.Unit.GRAMS_OF_CO2): TaskEmissionsProcessor(),
+    ('linux_system', Signal.Unit.HERTZ): [SystemFrequencyProcessor()],
+    ('linux_system', Signal.Unit.CELSIUS): [SystemTemperatureProcessor()],
+    ('linux_process', Signal.Unit.JOULES): [TaskEnergyProcessor()],
+    ('linux_process', Signal.Unit.GRAMS_OF_CO2): [TaskEmissionsProcessor()],
 }
 
 
@@ -377,9 +377,6 @@ def extract_linux_symbols(report):
             logger.info(' - Processing signal %s (%s)', source, unit_name)
             if (ctype, unit) in PROCESSORS:
                 processors = PROCESSORS[ctype, unit]
-
-                if not isinstance(processors, list):
-                    processors = [processors]
 
                 for processor in processors:
                     logger.info(
