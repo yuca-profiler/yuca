@@ -202,6 +202,7 @@ class TaskEmissionsProcessor(SignalProcessor):
 # Transistor gap temperature
 T = -(0.075 * 0.070 / 0.9 - 0.1897) / (8.6173303 * 10**-5)
 
+# TODO: Need to be customizable based on device
 # lifespan is 10 years in seconds
 cpu_lifespan = 315360000
 cpu_embodied_carbon = 10274.2
