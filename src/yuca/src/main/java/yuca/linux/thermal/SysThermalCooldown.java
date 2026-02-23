@@ -51,15 +51,15 @@ final class SysThermalCooldown {
   }
 
   private static int[] findX86ThermalZones() {
-    return getThermalZonesByType("x86_pkg_temp");
+    return getThermalZonesByType(ThermalZoneKind.X86_PKG_TEMP);
   }
 
-  private static int[] getThermalZonesByType(String type) {
+  private static int[] getThermalZonesByType(ThermalZoneKind type) {
     ArrayList<Integer> zones = new ArrayList<>();
     IntStream.range(0, SysThermal.getZoneCount())
         .forEach(
             zone -> {
-              if (SysThermal.getZoneType(zone).equals(type)) {
+              if (SysThermal.getZoneType(zone) == type) {
                 zones.add(zone);
               }
             });
