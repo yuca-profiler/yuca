@@ -439,7 +439,8 @@ def aggregate_symbols(symbols):
                 'socket'
             ]).sum().reset_index()
             # pandas *= operator is aligned by index. If we drop the first row [0], pandas will muliply by a missing index and create a NAN.
-            df.value *= df.groupby('socket')['timestamp'].diff().fillna(0) / 1e9
+            df.value *= df.groupby('socket')['timestamp'].diff() / 1e9
+            df = df.dropna()
         else:
             df = df.reset_index()
         agg_symbols['data'][symbol] = df.groupby('socket').agg({
