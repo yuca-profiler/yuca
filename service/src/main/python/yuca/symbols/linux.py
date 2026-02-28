@@ -218,6 +218,8 @@ def compute_amortized_carbon(temperature, frequency, normal_temperature, normal_
     )
     dfs = []
     for _, df in df.groupby('socket'):
+        #  multiple dropna calls required if system has multiple sockets, and frequency is split between the cores
+        #  ie. on a machine with 40 cores. socket:0 has frequency values on cores 0-23 and socket:1 has frequency values on 24-47
         df = df.sort_index().ffill().dropna(axis=1, how='all').dropna(axis=0)
         age = df.pop('value')
         for col in df.columns:
