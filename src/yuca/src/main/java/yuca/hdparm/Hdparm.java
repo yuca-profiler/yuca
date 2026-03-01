@@ -30,10 +30,11 @@ import yuca.hdparm.PowerMode;
 /** Simple wrapper around hdparm access that requires libhdparm.so. */
 public final class Hdparm {
     private static final Logger logger = getLogger();
-    private static final Path SYS_BLOCK = Paths.get("/sys", "block");
+    static final Path SYS_BLOCK = Paths.get("/sys", "block");
     private static Map<String, String> DEVICE_ID_MAP = buildDeviceIds();
     private static Map<String, String> DEVICE_MODEL_MAP = mapDeviceToModel();
 
+    /** Collects all ATA readable disks on system and builds its' device_id */
     public static Map<String, String> buildDeviceIds(){
         if(!Files.exists(SYS_BLOCK)){
             logger.warning("couldn't check the device blocks; block sysfs likely not available");
@@ -81,9 +82,8 @@ public final class Hdparm {
         }
     }
 
-    // map devices to its model name
+    /** Maps all found devices to its' model name. Model nameformat is "MODEL_SERIAL" */
     public static Map<String, String> mapDeviceToModel(){
-        // /sys/class/block/sda/device/model 
         return DEVICE_ID_MAP.keySet().stream()
             .collect(Collectors.toMap(
                 dev -> dev,
@@ -92,42 +92,45 @@ public final class Hdparm {
                     try {
                         return Files.readString(modelPath).trim().replace(' ', '_');
                     } catch (IOException e) {
-                        // System.out.println("bad map " + dev);
-                        return "unknown";
+                        return "DEFAULT";
                     }
                 }
             ));
     }
 
     //map devices to device id, ie: sda -> hdd:0. we can look up  /sys/block/sdX/queue/rotational
+    public static double getPower(String device){
+        return readTable(getModel(device), getMode(device));
+    }
+    public static EnumMap<PowerMode, Double> getTable(String model){
+        return DrivePowerRegistry.DEVICES_MP.getOrDefault(model, DrivePowerRegistry.DEVICES_MP.get("DEFAULT"));
+    }
+    public static PowerMode getMode(String device){
+        return getPowerMode(Paths.get("/dev", device).toString());
+    }
+    public static String getModel(String device){
+        return DEVICE_MODEL_MAP.getOrDefault(device, "DEFAULT");
+    }
+    public static double readTable(String model, PowerMode mode){
+        return getTable(model).get(mode);
+    }
 
     /** Returns an {@link HdparmSample} populated by parsing the string returned by {@ readNative}. */
     public static HdparmSample sample() {
         Instant timestamp = nowAsInstant();
         ArrayList<HdparmReading> readings = new ArrayList<>();
         for(String device : DEVICE_ID_MAP.keySet()){
-            String model = DEVICE_MODEL_MAP.getOrDefault(device, "DEFAULT");
-            PowerMode mode = getPowerMode("/dev/".concat(device));
-            EnumMap<PowerMode, Double> table = DrivePowerRegistry.DEVICES_MP.getOrDefault(model, DrivePowerRegistry.DEVICES_MP.get("DEFAULT"));
-            System.out.println("mode" + mode);
-            double watts = table.get(mode);
-            readings.add(new HdparmReading(DEVICE_ID_MAP.get(device), model, mode, watts));
+            readings.add(new HdparmReading(DEVICE_ID_MAP.get(device), getModel(device), getMode(device), getPower(device)));
         }
         return new HdparmSample(timestamp, readings);
     }
 
-    /** Computes the difference of two {@link PowercapReadings}. */
+    /** Computes the difference of two {@link HdparmSamples}. Passes in HdparmSample for timestamps */
     public static List<SignalData> between(HdparmSample first, HdparmSample second) {
-        // if (first.device != second.device) {
-        //     throw new IllegalArgumentException(
-        //         String.format(
-        //             "readings are not from the same domain (%d != %d)", first.device, second.device));
-        // }
-        ArrayList<SignalData> states = new ArrayList<>();
-        double elapsedSeconds = betweenAsSecs(fromInstant(first.timestamp()), fromInstant(second.timestamp()));
-
         Map<String, HdparmReading> secondMap = second.data().stream()
         .collect(Collectors.toMap(r -> r.device, r -> r));
+        ArrayList<SignalData> states = new ArrayList<>();
+        double elapsedSeconds = betweenAsSecs(fromInstant(first.timestamp()), fromInstant(second.timestamp()));
 
         for(HdparmReading reading : first.data()){
             HdparmReading later = secondMap.get(reading.device);
@@ -146,7 +149,6 @@ public final class Hdparm {
                 .build());
         }
         return states;
-            
     }
 
     public static SignalInterval difference(HdparmSample first, HdparmSample second) {
@@ -164,35 +166,8 @@ public final class Hdparm {
     }
 
     static {
-        try {
-            NativeUtils.loadLibraryFromJar("/yuca/src/main/c/yuca/hdparm/libhdparm.so");
-        } catch (Exception e) {
-            e.printStackTrace();
-            // Fallback to system library
-            try {
-                System.loadLibrary("hdparm");
-            } catch (UnsatisfiedLinkError err) {
-                err.printStackTrace();
-            }
-        }
-    }
-    
-    public static void main(String[] args) {
-        System.out.println("Testing hdparm JNI wrapper...");
-        try {
-            PowerMode test = getPowerMode("/dev/sda");
-            System.out.println(test);
-            for (String d: DEVICE_ID_MAP.keySet()){
-                System.out.println(d);
-            }
-            HdparmSample sample = Hdparm.sample();
-            List<HdparmReading> readings = sample.data();
-            for(HdparmReading r: readings){
-                System.out.println(r.device + ' ' + r.model + ' ' + r.mode + ' ' + r.watts); 
-            }
-        } catch (UnsatisfiedLinkError e) {
-            System.err.println("Failed to call native method: " + e.getMessage());
-            e.printStackTrace();
+        if (!NativeLibrary.initialize()) {
+            logger.warning("native library couldn't be initialized; hdparm likely not available");
         }
     }
 
