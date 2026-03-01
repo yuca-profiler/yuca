@@ -38,19 +38,8 @@ int get_powermode(const char *devname) {
         && do_drive_cmd(fd, args, 0)) {
         err = errno;
         close(fd);
-        // state = "error: ioctl failed";
         return -2;
     } 
-    
-    // else {
-    //     switch (args[2]) {
-    //         case 0x00: state = "standby";           break;
-    //         case 0x40: state = "NVcache_spindown";  break;
-    //         case 0x41: state = "NVcache_spinup";    break;
-    //         case 0x80: state = "idle";              break;
-    //         case 0xff: state = "active/idle";       break;
-    //     }
-    // }
     
     close(fd);
     return (int) args[2];
