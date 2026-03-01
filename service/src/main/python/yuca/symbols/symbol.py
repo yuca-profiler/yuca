@@ -1,21 +1,9 @@
 from yuca.symbols.unit import EmissionKind, LogicalUnit, PhysicalUnit
 
-DISK_POWER = (
-    LogicalUnit.DISK,
-    PhysicalUnit.WATTS
-) 
-
-DISK_OPERATIONAL_EMISSIONS = (
-    LogicalUnit.DISK,
-    PhysicalUnit.GRAMS_OF_CO2_RATE,
-    EmissionKind.OPERATIONAL
-)
-
 SOCKET_POWER = (
     LogicalUnit.SOCKET,
     PhysicalUnit.WATTS
 )
-
 SOCKET_OPERATIONAL_EMISSIONS = (
     LogicalUnit.SOCKET,
     PhysicalUnit.GRAMS_OF_CO2_RATE,

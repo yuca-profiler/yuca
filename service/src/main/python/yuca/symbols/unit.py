@@ -6,7 +6,6 @@ class LogicalUnit(Enum):
     CPU = 2
     TASK = 3
     GPU = 4
-    DISK = 5
 
 
 class PhysicalUnit(Enum):
