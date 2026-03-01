@@ -17,33 +17,24 @@ import yuca.util.NativeUtils;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
+// import yuca.hdparm.Hdparm.SYS_BLOCK;
 import yuca.hdparm.PowerMode;
-import yuca.hdparm.DrivePowerTable;
+// import yuca.hdparm.DrivePowerTable;
 
 // each device needs to map to a DrivePowerTable
 public final class DrivePowerRegistry {
     private static final Logger logger = getLogger();
     private static final String DEFAULT_SPECS_FILE = "/disks/DiskSpecs.csv";
-    private static final Path SYS_BLOCK = Paths.get("/sys", "block");
 
-    // public final Map<String, DrivePowerTable> DEVICES_MP = new HashMap<>();;
     public static final Map<String, EnumMap<PowerMode, Double>> DEVICES_MP = getPowerDraw();
-
-    // public DrivePowerTable get(String device){
-    //     return DEVICES_MP.get(device);
-    // }
-
-    // public void register(String device, DrivePowerTable table){
-    //     DEVICES_MP.put(device, table);
-    // }
 
     //create a list of string of available devices by name
     public static List<String> findDevicesModelName(){
-        if(!Files.exists(SYS_BLOCK)){
+        if(!Files.exists(Hdparm.SYS_BLOCK)){
             logger.warning("couldn't check the device blocks; block sysfs likely not available");
             return List.of();
         }
-        try (Stream<Path> paths = Files.list(SYS_BLOCK)) {
+        try (Stream<Path> paths = Files.list(Hdparm.SYS_BLOCK)) {
             return paths
                 .filter(p -> !Files.exists(p.resolve("partition")))
                 .map(p -> {
@@ -61,6 +52,7 @@ public final class DrivePowerRegistry {
             return List.of();
         }
     }
+
     /** Parses a csv like "MODEL,standby,NVcache_spindown,NVcache_spinup,idle,active_idle" */
     private static Map<String, EnumMap<PowerMode, Double>> parseCsv(List<String> lines){
         String[] header = lines.get(0).split(",");
@@ -80,14 +72,6 @@ public final class DrivePowerRegistry {
             ));
     }
     private static Map<String, EnumMap<PowerMode, Double>> getPowerDraw() {
-        // Path path = Path.of("src/yuca/src/main/resources/disks/DiskSpecs.csv");
-        // System.out.println("hello");
-        // System.out.println(path);
-        // if (!Files.exists(path)) {
-        //     logger.info(String.format("device specs file %s could not be found", path));
-        //     return Map.of();
-        //     // return getDefaultIntensities();
-        // }
         try {
             // return parseCsv(Files.readAllLines(path));
             return parseCsv(NativeUtils.readFileContentsFromJar(DEFAULT_SPECS_FILE));
