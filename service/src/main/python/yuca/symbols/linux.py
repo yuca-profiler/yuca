@@ -307,4 +307,3 @@ def aggregate_symbols(symbols):
         end = agg_symbols['data'][symbol]['end']
         agg_symbols['data'][symbol]['elapsed'] = end - start
     return agg_symbols
-    
