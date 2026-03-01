@@ -164,9 +164,24 @@ public final class Hdparm {
         int rawValue = powerMode(device);
         return PowerMode.fromRegister(rawValue);
     }
+    static boolean loadLibrary(){
+        try {
+            NativeUtils.loadLibraryFromJar("/yuca/src/main/c/yuca/hdparm/libhdparm.so");
+            return true;
+        } catch (Exception e) {
+            e.printStackTrace();
+            // Fallback to system library
+            try {
+                System.loadLibrary("hdparm");
+            } catch (UnsatisfiedLinkError err) {
+                err.printStackTrace();
+            }
+        }
+        return false;
+    }
 
     static {
-        if (!NativeLibrary.initialize()) {
+        if (!loadLibrary()) {
             logger.warning("native library couldn't be initialized; hdparm likely not available");
         }
     }

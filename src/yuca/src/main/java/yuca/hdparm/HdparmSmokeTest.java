@@ -1,48 +1,81 @@
 package yuca.hdparm;
 
-import yuca.util.NativeUtils;
-import yuca.hdparm.PowerMode;
-import yuca.hdparm.Hdparm;
-import yuca.hdparm.HdparmReading;
+import static java.util.stream.Collectors.joining;
+import static yuca.util.LoggerUtil.getLogger;
 
 import java.util.List;
+import java.util.logging.Logger;
+import java.util.stream.IntStream;
+import yuca.signal.SignalInterval;
+import yuca.signal.SignalInterval.SignalData;
+import yuca.util.Timestamps;
 
 public final class HdparmSmokeTest {
-    /*
-    public static native int powerMode(String device); //returns jint from c
+    private static final Logger logger = getLogger();
 
-    public static String getPowerMode(String device) {
-        int rawValue = powerMode(device);
-        return PowerMode.fromValue(rawValue).getState();
-    }
-
-    static {
-        try {
-            NativeUtils.loadLibraryFromJar("/yuca/src/main/c/yuca/hdparm/libhdparm.so");
-        } catch (Exception e) {
-            e.printStackTrace();
-            // Fallback to system library
-            try {
-                System.loadLibrary("hdparm");
-            } catch (UnsatisfiedLinkError err) {
-                err.printStackTrace();
-            }
+    private static int fib(int n) {
+        if (n == 0 || n == 1) {
+        return 1;
+        } else {
+        return fib(n - 1) + fib(n - 2);
         }
     }
 
-    public static void main(String[] args) {
-        System.out.println("Testing hdparm JNI wrapper...");
-        try {
-            HdparmSample sample = Hdparm.sample();
-            List<HdparmReading> readings = sample.data();
-            for(HdparmReading r: readings){
-                System.out.println(r.device + ' ' + r.mode.getState());
-            }
-        } catch (UnsatisfiedLinkError e) {
-            System.err.println("Failed to call native method: " + e.getMessage());
-            e.printStackTrace();
+    private static void exercise() {
+        fib(42);
+    }
+
+    /** Checks if hdparm is available for sampling. */
+    private static boolean hdparmAvailable() throws Exception {
+        if (!Hdparm.loadLibrary()) {
+        logger.info("the native library isn't available!");
+        return false;
+        }
+
+        HdparmSample start = Hdparm.sample();
+
+        exercise();
+
+        SignalInterval interval = Hdparm.difference(start, Hdparm.sample());
+
+        List<SignalData> readings = interval.getDataList();
+        double totalEnergy = 0;
+        for(SignalData reading: readings){
+            totalEnergy += reading.getValue();
+        }
+        if (totalEnergy == 0) {
+            logger.info("no energy consumed with the difference of two hdparm samples!");
+            return false;
+        }
+
+        logger.info(
+            String.join(
+                System.lineSeparator(),
+                "hdparm report",
+                String.format(
+                    " - elapsed time: %.6fs",
+                    (double) Timestamps.between(interval.getStart(), interval.getEnd()).toNanos()
+                        / 1000000000),
+                // TODO: Find a way to display each device model name
+                readings.stream()
+                    .map(reading -> String.format(
+                        " - energy: %.6fJ",
+                        reading.getValue()))
+                    .collect(joining(System.lineSeparator()))
+                )
+            );
+        return true;
+    }
+
+    public static void main(String[] args) throws Exception {
+        logger.info("warming up...");
+        for (int i = 0; i < 5; i++) exercise();
+        logger.info("testing hdparm...");
+        if (hdparmAvailable()) {
+        logger.info("smoke test passed!");
+        } else {
+        logger.info("smoke testing failed; please consult the log.");
         }
     }
-    */
     private HdparmSmokeTest() {}
 }
