@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
+import yuca.util.NativeUtils;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
@@ -22,6 +23,7 @@ import yuca.hdparm.DrivePowerTable;
 // each device needs to map to a DrivePowerTable
 public final class DrivePowerRegistry {
     private static final Logger logger = getLogger();
+    private static final String DEFAULT_SPECS_FILE = "/disks/DiskSpecs.csv";
     private static final Path SYS_BLOCK = Paths.get("/sys", "block");
 
     // public final Map<String, DrivePowerTable> DEVICES_MP = new HashMap<>();;
@@ -50,7 +52,7 @@ public final class DrivePowerRegistry {
                             p.resolve("device").resolve("model")
                         ).trim().replace(' ', '_');
                     } catch(IOException e){
-                        return "unknown";
+                        return "DEFAULT";
                     }
                 })
                 .collect(Collectors.toList());
@@ -69,7 +71,6 @@ public final class DrivePowerRegistry {
                 p -> p[0],
                 p -> {
                     EnumMap<PowerMode, Double> mp = new EnumMap<>(PowerMode.class);
-
                     for(int i = 1; i < p.length; i++){
                         PowerMode mode = PowerMode.valueOf(header[i].toUpperCase());
                         mp.put(mode, Double.parseDouble(p[i]));
@@ -79,16 +80,20 @@ public final class DrivePowerRegistry {
             ));
     }
     private static Map<String, EnumMap<PowerMode, Double>> getPowerDraw() {
-        Path path = Path.of("src/yuca/src/main/resources/disks/DiskSpecs.csv");
-        if (!Files.exists(path)) {
-            logger.info(String.format("device specs file %s could not be found", path));
-            return Map.of();
-            // return getDefaultIntensities();
-        }
+        // Path path = Path.of("src/yuca/src/main/resources/disks/DiskSpecs.csv");
+        // System.out.println("hello");
+        // System.out.println(path);
+        // if (!Files.exists(path)) {
+        //     logger.info(String.format("device specs file %s could not be found", path));
+        //     return Map.of();
+        //     // return getDefaultIntensities();
+        // }
         try {
-            return parseCsv(Files.readAllLines(path));
+            // return parseCsv(Files.readAllLines(path));
+            return parseCsv(NativeUtils.readFileContentsFromJar(DEFAULT_SPECS_FILE));
         } catch (IOException e) {
-            throw new IllegalStateException(String.format("Unable to read %s", path), e);
+            throw new IllegalStateException("Unable to read the default specs file.", e);
+            // throw new IllegalStateException(String.format("Unable to read %s", path), e);
         }
     }
 
@@ -96,7 +101,7 @@ public final class DrivePowerRegistry {
         List<String> arr = findDevicesModelName();
         arr.forEach(System.out::println);
         try{
-            Map<String, EnumMap<PowerMode, Double>> mp = parseCsv(Files.readAllLines(Path.of("src/yuca/src/main/resources/disks/DiskSpecs.csv")));
+            Map<String, EnumMap<PowerMode, Double>> mp = parseCsv(NativeUtils.readFileContentsFromJar(DEFAULT_SPECS_FILE));
             for (String s: mp.keySet()){
                 System.out.println(s);
                 EnumMap<PowerMode, Double> t = mp.get(s);

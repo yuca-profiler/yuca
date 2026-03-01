@@ -39,8 +39,8 @@ class SystemDiskEmissionsProcessor(SignalProcessor):
                     return None
                 emissions.append([
                     start,
-                    0,
                     # int(metadata['socket']),
+                    'ssd:0',
                     metadata['device'],
                     metadata['model'],
                     data.value / elapsed
@@ -49,12 +49,12 @@ class SystemDiskEmissionsProcessor(SignalProcessor):
             data=emissions,
             columns=[
                 'timestamp',
-                'socket',
+                'device_id',
                 'device',
                 'model',
                 'value'
             ]
-        ).set_index(['timestamp', 'socket', 'device', 'model']).value
+        ).set_index(['timestamp', 'device_id', 'device', 'model']).value
 
 class SystemDiskPowerProcessor(SignalProcessor):
     index = DISK_POWER
@@ -67,10 +67,10 @@ class SystemDiskPowerProcessor(SignalProcessor):
             elapsed = (end - start) / 1000000000
             for data in interval.data:
                 metadata = {m.name: m.value for m in data.metadata}
-                if 'device' not in metadata:
-                    return None
+                # if 'device' not in metadata:
+                #     return None
                     # return pd.DataFrame(columns=['timestamp', 'socket', 'value']).set_index(['timestamp', 'socket']).value
-                # print(metadata)
+                print(metadata)
                 # print(data.value)
                 power.append([
                     start,
@@ -83,12 +83,12 @@ class SystemDiskPowerProcessor(SignalProcessor):
             data=power,
             columns=[
                 'timestamp',
-                'socket',
+                'device_id',
                 'device',
                 'model',
                 'value'
             ]
-        ).set_index(['timestamp', 'socket', 'device', 'model']).value
+        ).set_index(['timestamp', 'device_id', 'device', 'model']).value
 
 class SystemEnergyProcessor(SignalProcessor):
     index = SOCKET_POWER
@@ -106,7 +106,7 @@ class SystemEnergyProcessor(SignalProcessor):
                     # return  pd.DataFrame(columns=['timestamp', 'socket', 'value']).set_index(['timestamp', 'socket']).value
                 power.append([
                     start,
-                    int(metadata['socket']),
+                    f"socket:{int(metadata['socket'])}",
                     metadata['component'],
                     data.value / elapsed
                 ])
@@ -114,11 +114,11 @@ class SystemEnergyProcessor(SignalProcessor):
             data=power,
             columns=[
                 'timestamp',
-                'socket',
+                'device_id',
                 'component',
                 'value'
             ]
-        ).set_index(['timestamp', 'socket', 'component']).value
+        ).set_index(['timestamp', 'device_id', 'component']).value
 
 
 class SystemEmissionsProcessor(SignalProcessor):
@@ -136,7 +136,7 @@ class SystemEmissionsProcessor(SignalProcessor):
                     return None
                 emissions.append([
                     start,
-                    int(metadata['socket']),
+                    f"socket:{int(metadata['socket'])}",
                     metadata['component'],
                     data.value / elapsed
                 ])
@@ -144,11 +144,11 @@ class SystemEmissionsProcessor(SignalProcessor):
             data=emissions,
             columns=[
                 'timestamp',
-                'socket',
+                'device_id',
                 'component',
                 'value'
             ]
-        ).set_index(['timestamp', 'socket', 'component']).value
+        ).set_index(['timestamp', 'device_id', 'component']).value
 
 class SystemTemperatureProcessor(SignalProcessor):
     index = SOCKET_TEMPERATURE
@@ -163,17 +163,17 @@ class SystemTemperatureProcessor(SignalProcessor):
                     continue
                 temperature.append([
                     start,
-                    int(metadata['socket']),
+                    f"socket:{int(metadata['socket'])}",
                     data.value
                 ])
         return pd.DataFrame(
             data=temperature,
             columns=[
                 'timestamp',
-                'socket',
+                'device_id',
                 'value'
             ]
-        ).set_index(['timestamp', 'socket']).value
+        ).set_index(['timestamp', 'device_id']).value
 
 
 class SystemFrequencyProcessor(SignalProcessor):
@@ -189,7 +189,7 @@ class SystemFrequencyProcessor(SignalProcessor):
                     continue
                 frequency.append([
                     start,
-                    int(metadata['socket']),
+                    f"socket:{int(metadata['socket'])}",
                     int(metadata['cpu']),
                     data.value
                 ])
@@ -197,11 +197,11 @@ class SystemFrequencyProcessor(SignalProcessor):
             data=frequency,
             columns=[
                 'timestamp',
-                'socket',
+                'device_id',
                 'cpu',
                 'value'
             ]
-        ).set_index(['timestamp', 'socket', 'cpu']).value
+        ).set_index(['timestamp', 'device_id', 'cpu']).value
 
 
 class TaskEnergyProcessor(SignalProcessor):
@@ -217,7 +217,7 @@ class TaskEnergyProcessor(SignalProcessor):
                 metadata = {m.name: m.value for m in data.metadata}
                 power.append([
                     start,
-                    int(metadata['socket']),
+                    f"socket:{int(metadata['socket'])}",
                     int(metadata['cpu']),
                     int(metadata['task']),
                     metadata['component'],
@@ -227,13 +227,13 @@ class TaskEnergyProcessor(SignalProcessor):
             data=power,
             columns=[
                 'timestamp',
-                'socket',
+                'device_id',
                 'cpu',
                 'task',
                 'component',
                 'value'
             ]
-        ).set_index(['timestamp', 'socket', 'cpu', 'task', 'component']).value
+        ).set_index(['timestamp', 'device_id', 'cpu', 'task', 'component']).value
 
 
 class TaskEmissionsProcessor(SignalProcessor):
@@ -249,7 +249,7 @@ class TaskEmissionsProcessor(SignalProcessor):
                 metadata = {m.name: m.value for m in data.metadata}
                 emissions.append([
                     start,
-                    int(metadata['socket']),
+                    f"socket:{int(metadata['socket'])}",
                     int(metadata['cpu']),
                     int(metadata['task']),
                     metadata['component'],
@@ -259,13 +259,13 @@ class TaskEmissionsProcessor(SignalProcessor):
             data=emissions,
             columns=[
                 'timestamp',
-                'socket',
+                'device_id',
                 'cpu',
                 'task',
                 'component',
                 'value'
             ]
-        ).set_index(['timestamp', 'socket', 'cpu', 'task', 'component']).value
+        ).set_index(['timestamp', 'device_id', 'cpu', 'task', 'component']).value
 
 
 # Transistor gap temperature
@@ -282,7 +282,7 @@ def compute_amortized_carbon(temperature, frequency, normal_temperature, normal_
         axis=1
     )
     dfs = []
-    for _, df in df.groupby('socket'):
+    for _, df in df.groupby('device_id'):
         df = df.sort_index().ffill().dropna()
         age = df.pop('value')
         for col in df.columns:
@@ -341,6 +341,7 @@ def extract_linux_symbols(report):
                         type(processor)
                     )
                     symbol, df = processor.process(signal)
+                    print(df)
                     if df is None:
                         continue
                     symbols['data'][symbol] = df
@@ -366,7 +367,7 @@ def aggregate_symbols(symbols):
     for symbol in symbols['data']:
         df = symbols['data'][symbol].groupby([
                 'timestamp',
-                'socket'
+                'device_id'
         ]).sum().reset_index()
         if symbol in [
             DISK_POWER,
@@ -377,13 +378,13 @@ def aggregate_symbols(symbols):
             TASK_POWER,
             TASK_OPERATIONAL_EMISSIONS,
         ]:
-            df.value *= df.groupby('socket')['timestamp'].diff().fillna(0) / 1e9
+            df.value *= df.groupby('device_id')['timestamp'].diff().fillna(0) / 1e9
             # df.value *= df.timestamp.diff() / 1000000000
         else:
             # for values that don't need to be aggregated up
             print(f"{symbol} does not need to be aggregated")
             df = df.reset_index()
-        agg_symbols['data'][symbol] = df.groupby('socket').agg({
+        agg_symbols['data'][symbol] = df.groupby('device_id').agg({
             'value': ('mean', 'median', 'sum', 'std'),
             'timestamp': ('min', 'max')
         })

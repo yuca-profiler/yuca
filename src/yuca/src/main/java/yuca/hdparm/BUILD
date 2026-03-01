@@ -8,7 +8,10 @@ java_library(
         "//src/yuca/src/main/java/yuca/util",
         "//src/yuca/src/main/proto/yuca/signal:signal_java_protos",
     ],
-    resources = ["//src/yuca/src/main/c/yuca/hdparm:libhdparm.so"],
+    resources = [
+        "//src/yuca/src/main/c/yuca/hdparm:libhdparm.so",
+        "//src/yuca/src/main/resources/disks:disks_data"
+        ],
 )
 
 # java_binary(

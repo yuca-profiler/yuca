@@ -171,36 +171,12 @@ public final class YucaApplicationMonitor implements YucaMonitor {
                 "/sys/class/block");
         diskEnergy.ifPresent(systemComponent::addSignal);
 
-        // Optional<Signal> diskEnergy =
-        //     createPhysicalSignal(
-        //         forwardApply(
-        //             raplFuture.get().stream()
-        //                 .filter(Optional::isPresent)
-        //                 .map(Optional::get)
-        //                 .collect(toList()),
-        //             raplSource::difference),
-        //         Signal.Unit.JOULES,
-        //         raplSource.name);
-        // raplEnergy.ifPresent(systemComponent::addSignal);
-
-        // Optional<Signal> hdparmActivity =
-        //     createPhysicalSignal(
-        //         forwardApply(
-        //             hdparmFuture.get(),
-        //             Hdparm::difference),
-        //         Signal.Unit.JOULES,
-        //         raplSource.name);
-
-        // hdparmActivity.ifPresent(systemComponent::addSignal);
-
-
         monotonicTimeFuture = null;
         systemTemperatureFuture = null;
         processFuture = null;
         systemFuture = null;
         raplFuture = null;
         frequencyFuture = null;
-
         hdparmFuture = null;
 
         // virtual signals
@@ -211,7 +187,6 @@ public final class YucaApplicationMonitor implements YucaMonitor {
           systemComponent.addSignal(convertToEmissions(raplEnergy.get()));
         }
 
-        // virtual signals
         if (diskEnergy.isEmpty()) {
           logger.info("not creating disk emissions: no hdparm energy");
         } else {
