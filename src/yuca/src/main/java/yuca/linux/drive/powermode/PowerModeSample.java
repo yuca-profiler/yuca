@@ -4,7 +4,10 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
-/** A sample of disk energy consumption since boot. */
+/**
+ * A sample from disk drive's internal registers that represents the current Linux block device
+ * powermode
+ */
 public final class PowerModeSample implements Comparable<PowerModeSample> {
   private final Instant timestamp;
   private final ArrayList<PowerModeReading> readings = new ArrayList<>();
