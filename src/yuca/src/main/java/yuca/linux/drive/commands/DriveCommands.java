@@ -70,7 +70,7 @@ public final class DriveCommands {
   }
 
   /** Returns the current disk drive powermode as a jint from c */
-  public static native int powerMode(String device);
+  private static native int powerMode(String device);
 
   /** Parses the raw register value of {@ powerMode} to a {@ PowerMode} */
   public static PowerMode getPowerMode(String device) {

@@ -44,8 +44,7 @@ public final class PowerModeReading {
     for (PowerModeReading reading : first.data()) {
       PowerModeReading later = secondMap.get(reading.device);
       if (later == null) continue;
-      double watts = reading.model.getPowerForMode(reading.mode);
-      double energyJoules = watts * elapsedSeconds;
+      double energyJoules = reading.getPower() * elapsedSeconds;
 
       states.add(
           SignalData.newBuilder()
@@ -67,5 +66,9 @@ public final class PowerModeReading {
         .setEnd(fromInstant(second.timestamp()))
         .addAllData(between(first, second))
         .build();
+  }
+
+  public double getPower() {
+    return model.getPowerForMode(mode);
   }
 }
