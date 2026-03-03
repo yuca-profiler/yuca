@@ -1,15 +1,15 @@
-package yuca.linux.drive;
+package yuca.linux.drive.powermode;
 
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
 /** A sample of disk energy consumption since boot. */
-public final class DiskDriveSample implements Comparable<DiskDriveSample> {
+public final class PowerModeSample implements Comparable<PowerModeSample> {
   private final Instant timestamp;
-  private final ArrayList<DiskDriveReading> readings = new ArrayList<>();
+  private final ArrayList<PowerModeReading> readings = new ArrayList<>();
 
-  DiskDriveSample(Instant timestamp, Iterable<DiskDriveReading> readings) {
+  public PowerModeSample(Instant timestamp, Iterable<PowerModeReading> readings) {
     this.timestamp = timestamp;
     readings.forEach(this.readings::add);
   }
@@ -18,12 +18,12 @@ public final class DiskDriveSample implements Comparable<DiskDriveSample> {
     return timestamp;
   }
 
-  public List<DiskDriveReading> data() {
+  public List<PowerModeReading> data() {
     return new ArrayList<>(readings);
   }
 
   @Override
-  public int compareTo(DiskDriveSample other) {
+  public int compareTo(PowerModeSample other) {
     return timestamp().compareTo(other.timestamp());
   }
 }

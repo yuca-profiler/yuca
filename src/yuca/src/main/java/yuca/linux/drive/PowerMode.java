@@ -1,4 +1,4 @@
-package yuca.linux.drive.spec;
+package yuca.linux.drive;
 
 public enum PowerMode {
   STANDBY,
