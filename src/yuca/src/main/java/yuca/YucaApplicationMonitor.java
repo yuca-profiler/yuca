@@ -10,8 +10,9 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.logging.Logger;
 import yuca.emissions.EmissionsConverter;
 import yuca.emissions.LocaleEmissionsConverters;
-import yuca.linux.drive.DiskDriveSample;
-import yuca.linux.drive.DriveCommands;
+import yuca.linux.drive.commands.DriveCommands;
+import yuca.linux.drive.powermode.PowerModeReading;
+import yuca.linux.drive.powermode.PowerModeSample;
 import yuca.linux.freq.CpuFreq;
 import yuca.linux.freq.CpuFrequencySample;
 import yuca.linux.jiffies.JiffiesAccounting;
@@ -53,7 +54,7 @@ public final class YucaApplicationMonitor implements YucaMonitor {
   private SamplingFuture<Optional<?>> raplFuture;
   private SamplingFuture<ThermalZonesSample> systemTemperatureFuture;
   private SamplingFuture<CpuFrequencySample> frequencyFuture;
-  private SamplingFuture<DiskDriveSample> diskDriveFuture;
+  private SamplingFuture<PowerModeSample> diskDriveFuture;
 
   public YucaApplicationMonitor(
       int periodMillis, long processId, ScheduledExecutorService executor) {
@@ -83,7 +84,8 @@ public final class YucaApplicationMonitor implements YucaMonitor {
             SamplingFuture.fixedPeriodMillis(SysThermal::sample, periodMillis, executor);
         frequencyFuture = SamplingFuture.fixedPeriodMillis(CpuFreq::sample, periodMillis, executor);
         diskDriveFuture =
-            SamplingFuture.fixedPeriodMillis(DriveCommands::sample, periodMillis, executor);
+            SamplingFuture.fixedPeriodMillis(
+                DriveCommands::samplePowerMode, periodMillis, executor);
         isRunning = true;
       }
     }
@@ -164,7 +166,7 @@ public final class YucaApplicationMonitor implements YucaMonitor {
         logger.info("creating disk energy signal");
         Optional<Signal> diskEnergy =
             createPhysicalSignal(
-                forwardApply(diskDriveFuture.get(), DriveCommands::difference),
+                forwardApply(diskDriveFuture.get(), PowerModeReading::difference),
                 Signal.Unit.JOULES,
                 "/sys/class/block");
         diskEnergy.ifPresent(systemComponent::addSignal);

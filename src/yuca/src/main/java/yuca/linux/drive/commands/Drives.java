@@ -14,6 +14,7 @@ import java.util.Set;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
+/** A class that exposes drive information from /sys/block. */
 public final class Drives {
   private static final Logger logger = getLogger();
   static final Path SYS_BLOCK = Paths.get("/sys", "block");
