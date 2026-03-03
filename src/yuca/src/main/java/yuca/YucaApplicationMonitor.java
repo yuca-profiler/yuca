@@ -53,7 +53,6 @@ public final class YucaApplicationMonitor implements YucaMonitor {
   private SamplingFuture<Optional<?>> raplFuture;
   private SamplingFuture<ThermalZonesSample> systemTemperatureFuture;
   private SamplingFuture<CpuFrequencySample> frequencyFuture;
-
   private SamplingFuture<HdparmSample> hdparmFuture;
 
   public YucaApplicationMonitor(
