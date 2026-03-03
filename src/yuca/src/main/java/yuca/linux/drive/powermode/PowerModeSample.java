@@ -5,9 +5,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * A sample from disk drive's internal registers that represents the current Linux block device
- * powermode
+ * A sample that represents the current Linux block device
+ * powermodes
  */
+
 public final class PowerModeSample implements Comparable<PowerModeSample> {
   private final Instant timestamp;
   private final ArrayList<PowerModeReading> readings = new ArrayList<>();

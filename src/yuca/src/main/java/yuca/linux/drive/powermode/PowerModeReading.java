@@ -14,7 +14,10 @@ import yuca.linux.drive.PowerMode;
 import yuca.signal.SignalInterval;
 import yuca.signal.SignalInterval.SignalData;
 
-/** A reading from disk drive's internal registers */
+/**
+ * A reading of a disk drive's {@link PowerMode} Refer to https://linux.die.net/man/8/hdparm
+ * for more details
+ */
 public final class PowerModeReading {
   // TODO: immutable data structures are "safe" as public
   // PowerModeReading domain
