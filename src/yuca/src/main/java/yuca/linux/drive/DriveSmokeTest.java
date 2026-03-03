@@ -1,4 +1,4 @@
-package yuca.hdparm;
+package yuca.linux.drive;
 
 import static java.util.stream.Collectors.joining;
 import static yuca.util.LoggerUtil.getLogger;
@@ -10,7 +10,7 @@ import yuca.signal.SignalInterval;
 import yuca.signal.SignalInterval.SignalData;
 import yuca.util.Timestamps;
 
-public final class HdparmSmokeTest {
+public final class DriveSmokeTest {
     private static final Logger logger = getLogger();
 
     private static int fib(int n) {
@@ -25,18 +25,18 @@ public final class HdparmSmokeTest {
         fib(42);
     }
 
-    /** Checks if hdparm is available for sampling. */
-    private static boolean hdparmAvailable() throws Exception {
-        if (!Hdparm.loadLibrary()) {
+    /** Checks if DriveCommands is available for sampling. */
+    private static boolean DriveCommandsAvailable() throws Exception {
+        if (!DriveCommands.loadLibrary()) {
         logger.info("the native library isn't available!");
         return false;
         }
 
-        HdparmSample start = Hdparm.sample();
+        DiskDriveSample start = DriveCommands.sample();
 
         exercise();
 
-        SignalInterval interval = Hdparm.difference(start, Hdparm.sample());
+        SignalInterval interval = DriveCommands.difference(start, DriveCommands.sample());
 
         List<SignalData> readings = interval.getDataList();
         double totalEnergy = 0;
@@ -44,14 +44,14 @@ public final class HdparmSmokeTest {
             totalEnergy += reading.getValue();
         }
         if (totalEnergy == 0) {
-            logger.info("no energy consumed with the difference of two hdparm samples!");
+            logger.info("no energy consumed with the difference of two DriveCommands samples!");
             return false;
         }
 
         logger.info(
             String.join(
                 System.lineSeparator(),
-                "hdparm report",
+                "DriveCommands report",
                 String.format(
                     " - elapsed time: %.6fs",
                     (double) Timestamps.between(interval.getStart(), interval.getEnd()).toNanos()
@@ -69,13 +69,13 @@ public final class HdparmSmokeTest {
 
     public static void main(String[] args) throws Exception {
         logger.info("warming up...");
-        for (int i = 0; i < 5; i++) exercise();
-        logger.info("testing hdparm...");
-        if (hdparmAvailable()) {
+        // for (int i = 0; i < 5; i++) exercise();
+        logger.info("testing DriveCommands...");
+        if (DriveCommandsAvailable()) {
         logger.info("smoke test passed!");
         } else {
         logger.info("smoke testing failed; please consult the log.");
         }
     }
-    private HdparmSmokeTest() {}
+    private DriveSmokeTest() {}
 }

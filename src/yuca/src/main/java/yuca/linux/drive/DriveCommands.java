@@ -1,4 +1,4 @@
-package yuca.hdparm;
+package yuca.linux.drive;
 
 import static java.util.stream.Collectors.toList;
 import static yuca.util.LoggerUtil.getLogger;
@@ -24,15 +24,16 @@ import yuca.signal.SignalInterval;
 import yuca.signal.SignalInterval.SignalData;
 
 import yuca.util.NativeUtils;
-import yuca.hdparm.PowerMode;
 
+import yuca.linux.drive.spec.PowerMode;
+import yuca.linux.drive.spec.DiskModel;
 
 /** Simple wrapper around hdparm access that requires libhdparm.so. */
-public final class Hdparm {
+public final class DriveCommands {
     private static final Logger logger = getLogger();
     static final Path SYS_BLOCK = Paths.get("/sys", "block");
     private static Map<String, String> DEVICE_ID_MAP = buildDeviceIds();
-    private static Map<String, String> DEVICE_MODEL_MAP = mapDeviceToModel();
+    private static Map<String, DiskModel> DEVICE_MODEL_MAP = mapDeviceToModel();
 
     /** Collects all ATA readable disks on system and builds its' device_id */
     public static Map<String, String> buildDeviceIds(){
@@ -83,57 +84,56 @@ public final class Hdparm {
     }
 
     /** Maps all found devices to its' model name. Model nameformat is "MODEL_SERIAL" */
-    public static Map<String, String> mapDeviceToModel(){
+    public static Map<String, DiskModel> mapDeviceToModel(){
         return DEVICE_ID_MAP.keySet().stream()
             .collect(Collectors.toMap(
                 dev -> dev,
                 dev -> {
                     Path modelPath = SYS_BLOCK.resolve(Paths.get(dev, "device/model"));
                     try {
-                        return Files.readString(modelPath).trim().replace(' ', '_');
+                        String model = Files.readString(modelPath).trim().replace(' ', '_');
+                        try {
+                            return DiskModel.valueOf(model);
+                        } catch (IllegalArgumentException e) {
+                            logger.info(String.format("Drive %s is not defined in yuca.linux.drive.spec.DiskModel, using DEFAULT" , model));
+                            return DiskModel.DEFAULT;
+                        }
                     } catch (IOException e) {
-                        return "DEFAULT";
+                        return DiskModel.DEFAULT;
                     }
                 }
             ));
     }
 
     //map devices to device id, ie: sda -> hdd:0. we can look up  /sys/block/sdX/queue/rotational
-    public static double getPower(String device){
-        return readTable(getModel(device), getMode(device));
-    }
-    public static EnumMap<PowerMode, Double> getTable(String model){
-        return DrivePowerRegistry.DEVICES_MP.getOrDefault(model, DrivePowerRegistry.DEVICES_MP.get("DEFAULT"));
-    }
     public static PowerMode getMode(String device){
         return getPowerMode(Paths.get("/dev", device).toString());
     }
-    public static String getModel(String device){
-        return DEVICE_MODEL_MAP.getOrDefault(device, "DEFAULT");
-    }
-    public static double readTable(String model, PowerMode mode){
-        return getTable(model).get(mode);
+    public static DiskModel getModel(String device){
+        return DEVICE_MODEL_MAP.getOrDefault(device, DiskModel.DEFAULT);
     }
 
-    /** Returns an {@link HdparmSample} populated by parsing the string returned by {@ readNative}. */
-    public static HdparmSample sample() {
+    /** Returns an {@link DiskDriveSample} populated by parsing the string returned by {@ readNative}. */
+    public static DiskDriveSample sample() {
         Instant timestamp = nowAsInstant();
-        ArrayList<HdparmReading> readings = new ArrayList<>();
+        ArrayList<DiskDriveReading> readings = new ArrayList<>();
         for(String device : DEVICE_ID_MAP.keySet()){
-            readings.add(new HdparmReading(DEVICE_ID_MAP.get(device), getModel(device), getMode(device), getPower(device)));
+            DiskModel model = getModel(device);
+            PowerMode mode = getMode(device);
+            readings.add(new DiskDriveReading(DEVICE_ID_MAP.get(device), getModel(device), mode, model.getPowerForMode(mode)));
         }
-        return new HdparmSample(timestamp, readings);
+        return new DiskDriveSample(timestamp, readings);
     }
 
-    /** Computes the difference of two {@link HdparmSamples}. Passes in HdparmSample for timestamps */
-    public static List<SignalData> between(HdparmSample first, HdparmSample second) {
-        Map<String, HdparmReading> secondMap = second.data().stream()
+    /** Computes the difference of two {@link DiskDriveSamples}. Passes in DiskDriveSample for timestamps */
+    public static List<SignalData> between(DiskDriveSample first, DiskDriveSample second) {
+        Map<String, DiskDriveReading> secondMap = second.data().stream()
         .collect(Collectors.toMap(r -> r.device, r -> r));
         ArrayList<SignalData> states = new ArrayList<>();
         double elapsedSeconds = betweenAsSecs(fromInstant(first.timestamp()), fromInstant(second.timestamp()));
 
-        for(HdparmReading reading : first.data()){
-            HdparmReading later = secondMap.get(reading.device);
+        for(DiskDriveReading reading : first.data()){
+            DiskDriveReading later = secondMap.get(reading.device);
             if (later == null) continue;
             double energyJoules = reading.watts * elapsedSeconds;
 
@@ -144,14 +144,14 @@ public final class Hdparm {
                         .setName("device")
                         .setValue(reading.device))
                 .addMetadata(
-                        SignalData.Metadata.newBuilder().setName("model").setValue(reading.model))
+                        SignalData.Metadata.newBuilder().setName("model").setValue(reading.model.toString()))
                 .setValue(energyJoules)
                 .build());
         }
         return states;
     }
 
-    public static SignalInterval difference(HdparmSample first, HdparmSample second) {
+    public static SignalInterval difference(DiskDriveSample first, DiskDriveSample second) {
         return SignalInterval.newBuilder()
             .setStart(fromInstant(first.timestamp()))
             .setEnd(fromInstant(second.timestamp()))
@@ -186,5 +186,5 @@ public final class Hdparm {
         }
     }
 
-    private Hdparm() {}
+    private DriveCommands() {}
 }
