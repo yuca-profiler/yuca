@@ -30,7 +30,7 @@ int get_powermode(const char *devname) {
     int err = 0;
     int fd = open(devname, open_flags);
     if (fd < 0) {
-        return -1;
+        return err;
     }
     
     __u8 args[4] = {ATA_OP_CHECKPOWERMODE1, 0, 0, 0};
@@ -40,7 +40,7 @@ int get_powermode(const char *devname) {
         && do_drive_cmd(fd, args, 0)) {
         err = errno;
         close(fd);
-        return -2;
+        return err;
     } 
     
     close(fd);

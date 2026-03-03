@@ -67,7 +67,7 @@ public final class DriveSmokeTest {
 
   public static void main(String[] args) throws Exception {
     logger.info("warming up...");
-    // for (int i = 0; i < 5; i++) exercise();
+    for (int i = 0; i < 5; i++) exercise();
     logger.info("testing DriveCommands...");
     if (DriveCommandsAvailable()) {
       logger.info("smoke test passed!");
