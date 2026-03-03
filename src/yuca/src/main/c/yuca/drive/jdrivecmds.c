@@ -23,12 +23,14 @@ int do_drive_cmd(int fd, unsigned char *args, unsigned int timeout_secs)
     return ioctl(fd, HDIO_DRIVE_CMD, args);
 }
 
-// Changed return type to const char* and removed exit calls for JNI context
+/** Returns the current IDE (Integrated Drive Electronics) power mode status of a Linux block device 
+  * Replicates `hdparm -C` behavior, Consult https://man7.org/linux/man-pages/man8/hdparm.8.html for more details.
+  */
 int get_powermode(const char *devname) {
     int err = 0;
     int fd = open(devname, open_flags);
     if (fd < 0) {
-        return "error: cannot open device";
+        return -1;
     }
     
     __u8 args[4] = {ATA_OP_CHECKPOWERMODE1, 0, 0, 0};
@@ -46,7 +48,7 @@ int get_powermode(const char *devname) {
 }
 
 JNIEXPORT jint JNICALL
-Java_yuca_linux_drive_DriveCommands_powerMode(JNIEnv *env, jclass jcls, jstring jdevice) {
+Java_yuca_linux_drive_commands_DriveCommands_powerMode(JNIEnv *env, jclass jcls, jstring jdevice) {
     const char *device = (*env)->GetStringUTFChars(env, jdevice, NULL);
     if (device == NULL){
         return -1;
