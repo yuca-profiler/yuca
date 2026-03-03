@@ -65,10 +65,10 @@ class SystemPackagePowerProcessor(SignalProcessor):
             elapsed = (end - start) / 1000000000
             for data in interval.data:
                 metadata = {m.name: m.value for m in data.metadata}
-                try:
-                    component = SocketComponentKind[metadata['component'].upper()]
-                except KeyError:
-                    print(f"{metadata['component']} is not a valid SocketComponentKind")
+                component = SocketComponentKind.__members__.get(metadata['component'].upper())
+                if component is None:
+                    logger.info('%s is not a valid SocketComponentKind', metadata['component'])
+                    continue
                 if component != SocketComponentKind.PACKAGE:
                     continue
                 power.append([
@@ -98,10 +98,10 @@ class SystemDramPowerProcessor(SignalProcessor):
             elapsed = (end - start) / 1000000000
             for data in interval.data:
                 metadata = {m.name: m.value for m in data.metadata}
-                try:
-                    component = SocketComponentKind[metadata['component'].upper()]
-                except KeyError:
-                    print(f"{metadata['component']} is not a valid SocketComponentKind")
+                component = SocketComponentKind.__members__.get(metadata['component'].upper())
+                if component is None:
+                    logger.info('%s is not a valid SocketComponentKind', metadata['component'])
+                    continue
                 if component != SocketComponentKind.DRAM:
                     continue
                 power.append([
@@ -159,10 +159,10 @@ class SystemPackageEmissionsProcessor(SignalProcessor):
             elapsed = (end - start) / 1000000000
             for data in interval.data:
                 metadata = {m.name: m.value for m in data.metadata}
-                try:
-                    component = SocketComponentKind[metadata['component'].upper()]
-                except KeyError:
-                    print(f"{metadata['component']} is not a valid SocketComponentKind")
+                component = SocketComponentKind.__members__.get(metadata['component'].upper())
+                if component is None:
+                    logger.info('%s is not a valid SocketComponentKind', metadata['component'])
+                    continue
                 if component != SocketComponentKind.PACKAGE:
                     continue
                 emissions.append([
@@ -192,10 +192,10 @@ class SystemDramEmissionsProcessor(SignalProcessor):
             elapsed = (end - start) / 1000000000
             for data in interval.data:
                 metadata = {m.name: m.value for m in data.metadata}
-                try:
-                    component = SocketComponentKind[metadata['component'].upper()]
-                except KeyError:
-                    print(f"{metadata['component']} is not a valid SocketComponentKind")
+                component = SocketComponentKind.__members__.get(metadata['component'].upper())
+                if component is None:
+                    logger.info('%s is not a valid SocketComponentKind', metadata['component'])
+                    continue
                 if component != SocketComponentKind.DRAM:
                     continue
                 emissions.append([
@@ -438,7 +438,6 @@ def aggregate_symbols(symbols):
                 'timestamp',
                 'socket'
             ]).sum().reset_index()
-            # pandas *= operator is aligned by index. If we drop the first row [0], pandas will muliply by a missing index and create a NAN.
             df.value *= df.groupby('socket')['timestamp'].diff() / 1e9
             df = df.dropna()
         else:
