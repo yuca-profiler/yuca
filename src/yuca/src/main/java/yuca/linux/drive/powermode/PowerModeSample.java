@@ -4,11 +4,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * A sample that represents the current Linux block device
- * powermodes
- */
-
+/** A sample that represents the current Linux block device powermodes */
 public final class PowerModeSample implements Comparable<PowerModeSample> {
   private final Instant timestamp;
   private final ArrayList<PowerModeReading> readings = new ArrayList<>();
