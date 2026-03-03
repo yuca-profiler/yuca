@@ -10,6 +10,8 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.logging.Logger;
 import yuca.emissions.EmissionsConverter;
 import yuca.emissions.LocaleEmissionsConverters;
+import yuca.hdparm.Hdparm;
+import yuca.hdparm.HdparmSample;
 import yuca.linux.freq.CpuFreq;
 import yuca.linux.freq.CpuFrequencySample;
 import yuca.linux.jiffies.JiffiesAccounting;
@@ -20,8 +22,6 @@ import yuca.linux.jiffies.SystemSample;
 import yuca.linux.jiffies.TaskEnergyAccounting;
 import yuca.linux.thermal.SysThermal;
 import yuca.linux.thermal.ThermalZonesSample;
-import yuca.hdparm.Hdparm;
-import yuca.hdparm.HdparmSample;
 import yuca.signal.Component;
 import yuca.signal.Report;
 import yuca.signal.Signal;
@@ -53,6 +53,7 @@ public final class YucaApplicationMonitor implements YucaMonitor {
   private SamplingFuture<Optional<?>> raplFuture;
   private SamplingFuture<ThermalZonesSample> systemTemperatureFuture;
   private SamplingFuture<CpuFrequencySample> frequencyFuture;
+
   private SamplingFuture<HdparmSample> hdparmFuture;
 
   public YucaApplicationMonitor(
@@ -82,9 +83,7 @@ public final class YucaApplicationMonitor implements YucaMonitor {
         systemTemperatureFuture =
             SamplingFuture.fixedPeriodMillis(SysThermal::sample, periodMillis, executor);
         frequencyFuture = SamplingFuture.fixedPeriodMillis(CpuFreq::sample, periodMillis, executor);
-
-        hdparmFuture =
-            SamplingFuture.fixedPeriodMillis(Hdparm::sample, periodMillis, executor);
+        hdparmFuture = SamplingFuture.fixedPeriodMillis(Hdparm::sample, periodMillis, executor);
         isRunning = true;
       }
     }
@@ -164,7 +163,7 @@ public final class YucaApplicationMonitor implements YucaMonitor {
 
         logger.info("creating disk energy signal");
         Optional<Signal> diskEnergy =
-        createPhysicalSignal(
+            createPhysicalSignal(
                 forwardApply(hdparmFuture.get(), Hdparm::difference),
                 Signal.Unit.JOULES,
                 "/sys/class/block");
