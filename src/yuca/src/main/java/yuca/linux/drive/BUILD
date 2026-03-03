@@ -10,7 +10,7 @@ java_library(
         "//src/yuca/src/main/proto/yuca/signal:signal_java_protos",
     ],
     resources = [
-        "//src/yuca/src/main/c/yuca/hdparm:libhdparm.so",
+        "//src/yuca/src/main/c/yuca/drive:libdrivecmds.so",
         "//src/yuca/src/main/resources/disks:disks_data"
         ],
 )

@@ -166,13 +166,13 @@ public final class DriveCommands {
     }
     static boolean loadLibrary(){
         try {
-            NativeUtils.loadLibraryFromJar("/yuca/src/main/c/yuca/hdparm/libhdparm.so");
+            NativeUtils.loadLibraryFromJar("/yuca/src/main/c/yuca/drive/libdrivecmds.so");
             return true;
         } catch (Exception e) {
             e.printStackTrace();
             // Fallback to system library
             try {
-                System.loadLibrary("hdparm");
+                System.loadLibrary("drivecmds");
             } catch (UnsatisfiedLinkError err) {
                 err.printStackTrace();
             }
@@ -182,7 +182,7 @@ public final class DriveCommands {
 
     static {
         if (!loadLibrary()) {
-            logger.warning("native library couldn't be initialized; hdparm likely not available");
+            logger.warning("native library couldn't be initialized; ioctl likely not available");
         }
     }
 

@@ -46,7 +46,7 @@ int get_powermode(const char *devname) {
 }
 
 JNIEXPORT jint JNICALL
-Java_yuca_hdparm_Hdparm_powerMode(JNIEnv *env, jclass jcls, jstring jdevice) {
+Java_yuca_linux_drive_DriveCommands_powerMode(JNIEnv *env, jclass jcls, jstring jdevice) {
     const char *device = (*env)->GetStringUTFChars(env, jdevice, NULL);
     if (device == NULL){
         return -1;
