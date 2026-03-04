@@ -33,10 +33,7 @@ public final class PowerModeReading {
     this.mode = mode;
   }
 
-  /**
-   * Computes the difference of two {@link PowerModeSamples}. Passes in PowerModeSample for
-   * timestamps
-   */
+  /** Computes the difference of two {@link PowerModeSamples}. */
   public static List<SignalData> between(PowerModeSample first, PowerModeSample second) {
     Map<String, PowerModeReading> secondMap =
         second.data().stream().collect(Collectors.toMap(r -> r.device, r -> r));

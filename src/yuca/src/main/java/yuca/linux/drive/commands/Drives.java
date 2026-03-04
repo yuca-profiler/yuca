@@ -1,14 +1,14 @@
 package yuca.linux.drive.commands;
 
 import static yuca.util.LoggerUtil.getLogger;
+import static yuca.util.Timestamps.nowAsInstant;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import static yuca.util.Timestamps.nowAsInstant;
-import java.util.ArrayList;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -102,8 +102,6 @@ public final class Drives {
                 }));
   }
 
-
-
   public static DiskModel getModel(String device) {
     return DEVICE_MODEL_MAP.getOrDefault(device, DiskModel.DEFAULT);
   }
@@ -122,7 +120,10 @@ public final class Drives {
     ArrayList<PowerModeReading> readings = new ArrayList<>();
     for (String device : Drives.getDeviceKeys()) {
       readings.add(
-          new PowerModeReading(deviceIdFor(device), getModel(device), DriveCommands.getPowerModeFromRegisterValue(device)));
+          new PowerModeReading(
+              deviceIdFor(device),
+              getModel(device),
+              DriveCommands.getPowerModeFromRegisterValue(device)));
     }
     return new PowerModeSample(timestamp, readings);
   }
