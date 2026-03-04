@@ -10,7 +10,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.logging.Logger;
 import yuca.emissions.EmissionsConverter;
 import yuca.emissions.LocaleEmissionsConverters;
-import yuca.linux.drive.commands.DriveCommands;
+import yuca.linux.drive.commands.Drives;
 import yuca.linux.drive.powermode.PowerModeReading;
 import yuca.linux.drive.powermode.PowerModeSample;
 import yuca.linux.freq.CpuFreq;
@@ -85,7 +85,7 @@ public final class YucaApplicationMonitor implements YucaMonitor {
         frequencyFuture = SamplingFuture.fixedPeriodMillis(CpuFreq::sample, periodMillis, executor);
         diskDriveFuture =
             SamplingFuture.fixedPeriodMillis(
-                DriveCommands::samplePowerMode, periodMillis, executor);
+                Drives::samplePowerMode, periodMillis, executor);
         isRunning = true;
       }
     }
