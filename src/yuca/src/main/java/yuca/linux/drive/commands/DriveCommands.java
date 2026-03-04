@@ -2,17 +2,14 @@ package yuca.linux.drive.commands;
 
 import static yuca.util.LoggerUtil.getLogger;
 
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-
 import java.util.Map;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
-
-
+import yuca.linux.drive.PowerMode;
 import yuca.util.NativeUtils;
 
 /** Simple wrapper around Linux block device access that requires libhdparm.so. */
@@ -25,11 +22,11 @@ public final class DriveCommands {
   private static int getRawPowerMode(String devicePath) {
     return powerMode(devicePath);
   }
-  
+
   /** Returns the current disk drive {@ PowerMode} */
   public static PowerMode getPowerModeFromRegisterValue(String device) {
-      String devicePath = Paths.get("/dev", device).toString();
-      return PowerMode.fromRegister(getRawPowerMode(devicePath));
+    String devicePath = Paths.get("/dev", device).toString();
+    return PowerMode.fromRegister(getRawPowerMode(devicePath));
   }
 
   /** Makes a safe attempt to load the library. */
