@@ -207,6 +207,7 @@ T = -(0.075 * 0.070 / 0.9 - 0.1897) / (8.6173303 * 10**-5)
 cpu_lifespan = 315360000
 cpu_embodied_carbon = 10274.2
 
+
 def compute_amortized_carbon(temperature, frequency, normal_temperature, normal_frequency):
     norm = temperature.copy(deep=True)
     norm[norm > normal_temperature] = normal_temperature
@@ -219,20 +220,61 @@ def compute_amortized_carbon(temperature, frequency, normal_temperature, normal_
     )
     dfs = []
     for _, df in df.groupby('socket'):
-        #  multiple dropna calls required if system has multiple sockets, and frequency is split between the cores
-        #  ie. on a machine with 40 cores. socket:0 has frequency values on cores 0-23 and socket:1 has frequency values on 24-47
         df = df.sort_index().ffill().dropna(axis=1, how='all').dropna(axis=0)
         age = df.pop('value')
         for col in df.columns:
             norm = df[col].copy(deep=True)
             norm[norm > normal_frequency] = normal_frequency
-            df[col] = (age * df[col] / norm) * (cpu_embodied_carbon / cpu_lifespan)
+            df[col] = (age * df[col] / norm) * \
+                (cpu_embodied_carbon / cpu_lifespan)
         df.columns.name = 'cpu'
         dfs.append(df.stack())
     amortized = pd.concat(dfs)
     amortized.name = 'value'
     return amortized
 
+
+"""
+This code is not fully tested but appears to work as expected based on this script:
+
+from itertools import product
+
+import math
+import pandas as pd
+import numpy as np
+
+from yuca.symbols.linux import compute_amortized_carbon
+
+freq_index = pd.MultiIndex.from_tuples(
+    product([1767403714251088000, 1767403714251088010],
+            list(range(2)), list(range(9))),
+    names=["timestamp", "socket", "cpu"]
+)
+
+freq = pd.Series(
+    [10e9] * len(freq_index),
+    index=freq_index,
+    name="value"
+)
+
+temp_index = pd.MultiIndex.from_tuples(
+    product([1767403714251088005, 1767403714251088015], list(range(2))),
+    names=["timestamp", "socket"]
+)
+
+temp = pd.Series(
+    [37] * len(temp_index),
+    index=temp_index,
+    name="value"
+)
+
+result = compute_amortized_carbon(temp, freq, 40, 1800000000)
+assert math.isclose(
+    result.sum(),
+    0.000181 * len(result),
+    rel_tol=1e-4
+)
+"""
 
 # maps component type + unit to processing
 PROCESSORS = {
