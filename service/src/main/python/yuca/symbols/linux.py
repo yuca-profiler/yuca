@@ -53,21 +53,22 @@ class SystemEnergyProcessor(SignalProcessor):
             ]
         ).set_index(['timestamp', 'socket', 'component']).value
 
+
 class SystemPackagePowerProcessor(SignalProcessor):
     index = SOCKET_PACKAGE_POWER
 
     def _process_internal(self, signal):
         power = []
-        component = None
         for interval in signal.interval:
             start = 1000000000 * interval.start.secs + interval.start.nanos
             end = 1000000000 * interval.end.secs + interval.end.nanos
             elapsed = (end - start) / 1000000000
             for data in interval.data:
                 metadata = {m.name: m.value for m in data.metadata}
-                component = SocketComponentKind.__members__.get(metadata['component'].upper())
-                if component is None:
-                    logger.info('%s is not a valid SocketComponentKind', metadata['component'])
+                component = metadata['component'].upper()
+                if component not in SocketComponentKind.__members__:
+                    logger.info(
+                        '%s is not a supported SocketComponentKind', component)
                     continue
                 if component != SocketComponentKind.PACKAGE:
                     continue
@@ -87,6 +88,7 @@ class SystemPackagePowerProcessor(SignalProcessor):
             ]
         ).set_index(['timestamp', 'socket', 'component']).value
 
+
 class SystemDramPowerProcessor(SignalProcessor):
     index = SOCKET_DRAM_POWER
 
@@ -98,9 +100,10 @@ class SystemDramPowerProcessor(SignalProcessor):
             elapsed = (end - start) / 1000000000
             for data in interval.data:
                 metadata = {m.name: m.value for m in data.metadata}
-                component = SocketComponentKind.__members__.get(metadata['component'].upper())
-                if component is None:
-                    logger.info('%s is not a valid SocketComponentKind', metadata['component'])
+                component = metadata['component'].upper()
+                if component not in SocketComponentKind.__members__:
+                    logger.info(
+                        '%s is not a supported SocketComponentKind', component)
                     continue
                 if component != SocketComponentKind.DRAM:
                     continue
@@ -119,6 +122,7 @@ class SystemDramPowerProcessor(SignalProcessor):
                 'value'
             ]
         ).set_index(['timestamp', 'socket', 'component']).value
+
 
 class SystemEmissionsProcessor(SignalProcessor):
     index = SOCKET_OPERATIONAL_EMISSIONS
@@ -147,6 +151,7 @@ class SystemEmissionsProcessor(SignalProcessor):
             ]
         ).set_index(['timestamp', 'socket', 'component']).value
 
+
 class SystemPackageEmissionsProcessor(SignalProcessor):
     index = SOCKET_PACKAGE_OPERATIONAL_EMISSIONS
 
@@ -159,9 +164,10 @@ class SystemPackageEmissionsProcessor(SignalProcessor):
             elapsed = (end - start) / 1000000000
             for data in interval.data:
                 metadata = {m.name: m.value for m in data.metadata}
-                component = SocketComponentKind.__members__.get(metadata['component'].upper())
-                if component is None:
-                    logger.info('%s is not a valid SocketComponentKind', metadata['component'])
+                component = metadata['component'].upper()
+                if component not in SocketComponentKind.__members__:
+                    logger.info(
+                        '%s is not a supported SocketComponentKind', component)
                     continue
                 if component != SocketComponentKind.PACKAGE:
                     continue
@@ -181,6 +187,7 @@ class SystemPackageEmissionsProcessor(SignalProcessor):
             ]
         ).set_index(['timestamp', 'socket', 'component']).value
 
+
 class SystemDramEmissionsProcessor(SignalProcessor):
     index = SOCKET_DRAM_OPERATIONAL_EMISSIONS
 
@@ -192,9 +199,10 @@ class SystemDramEmissionsProcessor(SignalProcessor):
             elapsed = (end - start) / 1000000000
             for data in interval.data:
                 metadata = {m.name: m.value for m in data.metadata}
-                component = SocketComponentKind.__members__.get(metadata['component'].upper())
-                if component is None:
-                    logger.info('%s is not a valid SocketComponentKind', metadata['component'])
+                component = metadata['component'].upper()
+                if component not in SocketComponentKind.__members__:
+                    logger.info(
+                        '%s is not a supported SocketComponentKind', component)
                     continue
                 if component != SocketComponentKind.DRAM:
                     continue

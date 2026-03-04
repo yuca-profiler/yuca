@@ -21,9 +21,11 @@ class PhysicalUnit(Enum):
     WATTS = 10
     CELSIUS = 11
 
+
 class EmissionKind(Enum):
     OPERATIONAL = 1
     AMORTIZED = 2
+
 
 class SocketComponentKind(Enum):
     PACKAGE = 1
