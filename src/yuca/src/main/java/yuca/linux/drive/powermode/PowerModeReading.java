@@ -15,8 +15,8 @@ import yuca.signal.SignalInterval;
 import yuca.signal.SignalInterval.SignalData;
 
 /**
- * A reading of a disk drive's {@link PowerMode} Refer to https://linux.die.net/man/8/hdparm
- * for more details
+ * A reading of a disk drive's {@link PowerMode} Refer to https://linux.die.net/man/8/hdparm for
+ * more details
  */
 public final class PowerModeReading {
   // TODO: immutable data structures are "safe" as public
@@ -57,6 +57,10 @@ public final class PowerModeReading {
                   SignalData.Metadata.newBuilder()
                       .setName("model")
                       .setValue(reading.model.toString()))
+              .addMetadata(
+                  SignalData.Metadata.newBuilder()
+                      .setName("mode")
+                      .setValue(reading.mode.toString()))
               .setValue(energyJoules)
               .build());
     }
