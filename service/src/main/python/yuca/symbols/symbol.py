@@ -1,12 +1,34 @@
-from yuca.symbols.unit import EmissionKind, LogicalUnit, PhysicalUnit
+from yuca.symbols.unit import EmissionKind, SocketComponentKind, LogicalUnit, PhysicalUnit
 
 SOCKET_POWER = (
     LogicalUnit.SOCKET,
     PhysicalUnit.WATTS
 )
+SOCKET_PACKAGE_POWER = (
+    LogicalUnit.SOCKET,
+    PhysicalUnit.WATTS,
+    SocketComponentKind.PACKAGE
+)
+SOCKET_DRAM_POWER = (
+    LogicalUnit.SOCKET,
+    PhysicalUnit.WATTS,
+    SocketComponentKind.DRAM
+)
 SOCKET_OPERATIONAL_EMISSIONS = (
     LogicalUnit.SOCKET,
     PhysicalUnit.GRAMS_OF_CO2_RATE,
+    EmissionKind.OPERATIONAL
+)
+SOCKET_PACKAGE_OPERATIONAL_EMISSIONS = (
+    LogicalUnit.SOCKET,
+    PhysicalUnit.GRAMS_OF_CO2_RATE,
+    SocketComponentKind.PACKAGE,
+    EmissionKind.OPERATIONAL
+)
+SOCKET_DRAM_OPERATIONAL_EMISSIONS = (
+    LogicalUnit.SOCKET,
+    PhysicalUnit.GRAMS_OF_CO2_RATE,
+    SocketComponentKind.DRAM,
     EmissionKind.OPERATIONAL
 )
 SOCKET_TEMPERATURE = (
