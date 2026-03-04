@@ -27,18 +27,18 @@ public final class DriveSmokeTest {
     fib(42);
   }
 
-  /** Checks if DriveCommands is available for sampling. */
-  private static boolean DriveCommandsAvailable() throws Exception {
+  /** Checks if Drives is available for sampling. */
+  private static boolean DrivesAvailable() throws Exception {
     if (!DriveCommands.loadLibrary()) {
       logger.info("the native library isn't available!");
       return false;
     }
 
-    PowerModeSample start = DriveCommands.samplePowerMode();
+    PowerModeSample start = Drives.samplePowerMode();
 
     exercise();
 
-    SignalInterval interval = PowerModeReading.difference(start, DriveCommands.samplePowerMode());
+    SignalInterval interval = PowerModeReading.difference(start, Drives.samplePowerMode());
 
     List<SignalData> readings = interval.getDataList();
     double totalEnergy = 0;
@@ -46,14 +46,14 @@ public final class DriveSmokeTest {
       totalEnergy += reading.getValue();
     }
     if (totalEnergy == 0) {
-      logger.info("no energy consumed with the difference of two DriveCommands samples!");
+      logger.info("no energy consumed with the difference of two PowerMode samples!");
       return false;
     }
 
     logger.info(
         String.join(
             System.lineSeparator(),
-            "DriveCommands report",
+            "Drives report",
             String.format(
                 " - elapsed time: %.6fs",
                 (double) Timestamps.between(interval.getStart(), interval.getEnd()).toNanos()
@@ -69,7 +69,7 @@ public final class DriveSmokeTest {
     logger.info("warming up...");
     for (int i = 0; i < 5; i++) exercise();
     logger.info("testing DriveCommands...");
-    if (DriveCommandsAvailable()) {
+    if (DrivesAvailable()) {
       logger.info("smoke test passed!");
     } else {
       logger.info("smoke testing failed; please consult the log.");
