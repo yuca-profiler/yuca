@@ -212,6 +212,7 @@ def compute_amortized_carbon(temperature, frequency, normal_temperature, normal_
     norm = temperature.copy(deep=True)
     norm[norm > normal_temperature] = normal_temperature
     # e^(T/temp) / e^(T/normal temp) = e^(T/temp - T/normal temp) = e^(T * (1 /temp - 1/normal temp))
+    # Temperature must be in Kelvin for aging to prevent unit mismatch
     age = np.exp(T * (1 / (273 + temperature) - 1 / (273 + norm)))
 
     df = pd.concat(
