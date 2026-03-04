@@ -17,7 +17,6 @@ import java.util.Set;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import yuca.linux.drive.DiskModel;
-import yuca.linux.drive.PowerMode;
 import yuca.linux.drive.powermode.PowerModeReading;
 import yuca.linux.drive.powermode.PowerModeSample;
 
