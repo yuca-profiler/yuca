@@ -1,7 +1,9 @@
 import logging
 
 import numpy as np
+import scipy as sp
 import pandas as pd
+
 
 from yuca.signal_pb2 import Signal
 from yuca.symbols.symbol import SOCKET_POWER
@@ -199,11 +201,22 @@ class TaskEmissionsProcessor(SignalProcessor):
         ).set_index(['timestamp', 'socket', 'cpu', 'task', 'component']).value
 
 
+# boltzmann's constant in eV/K
+k_b, _, _ = sp.constants.physical_constants['Boltzmann constant in eV/K']
+# poisson parameter for trap distribution in eV nm/V
+B = 0.075
+# transistor channel energy in eV
+E_0 = 0.1897
+# supply voltage in V
+v_dd = 0.070
+# equivalent oxide thickness in nm
+t_ox = 0.9
 # Transistor gap temperature
-T = -(0.075 * 0.070 / 0.9 - 0.1897) / (8.6173303 * 10**-5)
+T = -(B * v_dd / t_ox - E_0) / k_b
 
 # TODO: Need to be customizable based on device
 # lifespan is 10 years in seconds
+# embodied_carbon is in grams
 cpu_lifespan = 315360000
 cpu_embodied_carbon = 10274.2
 
