@@ -53,3 +53,12 @@ TASK_OPERATIONAL_EMISSIONS = (
     PhysicalUnit.GRAMS_OF_CO2_RATE,
     EmissionKind.OPERATIONAL
 )
+DISK_POWER = (
+    LogicalUnit.DISK,
+    PhysicalUnit.WATTS
+)
+DISK_OPERATIONAL_EMISSIONS = (
+    LogicalUnit.DISK,
+    PhysicalUnit.GRAMS_OF_CO2_RATE,
+    EmissionKind.OPERATIONAL
+)

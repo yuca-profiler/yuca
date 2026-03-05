@@ -4,10 +4,10 @@ import numpy as np
 import pandas as pd
 
 from yuca.signal_pb2 import Signal
-from yuca.symbols.symbol import SOCKET_POWER, SOCKET_PACKAGE_POWER, SOCKET_DRAM_POWER
-from yuca.symbols.symbol import CPU_AMORTIZED_EMISSIONS, SOCKET_OPERATIONAL_EMISSIONS, SOCKET_PACKAGE_OPERATIONAL_EMISSIONS, SOCKET_DRAM_OPERATIONAL_EMISSIONS
-from yuca.symbols.symbol import CPU_FREQUENCY, SOCKET_TEMPERATURE
+from yuca.symbols.symbol import SOCKET_POWER, SOCKET_PACKAGE_POWER, SOCKET_DRAM_POWER, SOCKET_OPERATIONAL_EMISSIONS, SOCKET_PACKAGE_OPERATIONAL_EMISSIONS, SOCKET_DRAM_OPERATIONAL_EMISSIONS, SOCKET_TEMPERATURE
+from yuca.symbols.symbol import CPU_FREQUENCY, CPU_AMORTIZED_EMISSIONS
 from yuca.symbols.symbol import TASK_POWER, TASK_OPERATIONAL_EMISSIONS
+from yuca.symbols.symbol import DISK_POWER, DISK_OPERATIONAL_EMISSIONS
 from yuca.symbols.unit import SocketComponentKind
 
 logger = logging.getLogger(__name__)
@@ -37,9 +37,11 @@ class SystemEnergyProcessor(SignalProcessor):
             elapsed = (end - start) / 1000000000
             for data in interval.data:
                 metadata = {m.name: m.value for m in data.metadata}
+                if 'component' not in metadata:
+                    continue
                 power.append([
                     start,
-                    int(metadata['socket']),
+                    f"socket:{int(metadata['socket'])}",
                     metadata['component'],
                     data.value / elapsed
                 ])
@@ -47,11 +49,11 @@ class SystemEnergyProcessor(SignalProcessor):
             data=power,
             columns=[
                 'timestamp',
-                'socket',
+                'device_id',
                 'component',
                 'value'
             ]
-        ).set_index(['timestamp', 'socket', 'component']).value
+        ).set_index(['timestamp', 'device_id', 'component']).value
 
 
 class SystemPackagePowerProcessor(SignalProcessor):
@@ -65,6 +67,8 @@ class SystemPackagePowerProcessor(SignalProcessor):
             elapsed = (end - start) / 1000000000
             for data in interval.data:
                 metadata = {m.name: m.value for m in data.metadata}
+                if 'component' not in metadata:
+                    continue
                 component = metadata['component'].upper()
                 if component not in SocketComponentKind.__members__:
                     logger.info(
@@ -74,7 +78,7 @@ class SystemPackagePowerProcessor(SignalProcessor):
                     continue
                 power.append([
                     start,
-                    int(metadata['socket']),
+                    f"socket:{int(metadata['socket'])}",
                     metadata['component'],
                     data.value / elapsed
                 ])
@@ -82,11 +86,11 @@ class SystemPackagePowerProcessor(SignalProcessor):
             data=power,
             columns=[
                 'timestamp',
-                'socket',
+                'device_id',
                 'component',
                 'value'
             ]
-        ).set_index(['timestamp', 'socket', 'component']).value
+        ).set_index(['timestamp', 'device_id', 'component']).value
 
 
 class SystemDramPowerProcessor(SignalProcessor):
@@ -100,6 +104,8 @@ class SystemDramPowerProcessor(SignalProcessor):
             elapsed = (end - start) / 1000000000
             for data in interval.data:
                 metadata = {m.name: m.value for m in data.metadata}
+                if 'component' not in metadata:
+                    continue
                 component = metadata['component'].upper()
                 if component not in SocketComponentKind.__members__:
                     logger.info(
@@ -109,7 +115,7 @@ class SystemDramPowerProcessor(SignalProcessor):
                     continue
                 power.append([
                     start,
-                    int(metadata['socket']),
+                    f"socket:{int(metadata['socket'])}",
                     metadata['component'],
                     data.value / elapsed
                 ])
@@ -117,11 +123,41 @@ class SystemDramPowerProcessor(SignalProcessor):
             data=power,
             columns=[
                 'timestamp',
-                'socket',
+                'device_id',
                 'component',
                 'value'
             ]
-        ).set_index(['timestamp', 'socket', 'component']).value
+        ).set_index(['timestamp', 'device_id', 'component']).value
+
+
+class SystemDiskPowerProcessor(SignalProcessor):
+    index = DISK_POWER
+
+    def _process_internal(self, signal):
+        power = []
+        for interval in signal.interval:
+            start = 1000000000 * interval.start.secs + interval.start.nanos
+            end = 1000000000 * interval.end.secs + interval.end.nanos
+            elapsed = (end - start) / 1000000000
+            for data in interval.data:
+                metadata = {m.name: m.value for m in data.metadata}
+                if 'device' not in metadata:
+                    continue
+                power.append([
+                    start,
+                    metadata['device'],
+                    metadata['model'],
+                    data.value / elapsed
+                ])
+        return pd.DataFrame(
+            data=power,
+            columns=[
+                'timestamp',
+                'device_id',
+                'model',
+                'value'
+            ]
+        ).set_index(['timestamp', 'device_id', 'model']).value
 
 
 class SystemEmissionsProcessor(SignalProcessor):
@@ -135,9 +171,11 @@ class SystemEmissionsProcessor(SignalProcessor):
             elapsed = (end - start) / 1000000000
             for data in interval.data:
                 metadata = {m.name: m.value for m in data.metadata}
+                if 'component' not in metadata:
+                    continue
                 emissions.append([
                     start,
-                    int(metadata['socket']),
+                    f"socket:{int(metadata['socket'])}",
                     metadata['component'],
                     data.value / elapsed
                 ])
@@ -145,11 +183,11 @@ class SystemEmissionsProcessor(SignalProcessor):
             data=emissions,
             columns=[
                 'timestamp',
-                'socket',
+                'device_id',
                 'component',
                 'value'
             ]
-        ).set_index(['timestamp', 'socket', 'component']).value
+        ).set_index(['timestamp', 'device_id', 'component']).value
 
 
 class SystemPackageEmissionsProcessor(SignalProcessor):
@@ -164,6 +202,8 @@ class SystemPackageEmissionsProcessor(SignalProcessor):
             elapsed = (end - start) / 1000000000
             for data in interval.data:
                 metadata = {m.name: m.value for m in data.metadata}
+                if 'component' not in metadata:
+                    continue
                 component = metadata['component'].upper()
                 if component not in SocketComponentKind.__members__:
                     logger.info(
@@ -173,7 +213,7 @@ class SystemPackageEmissionsProcessor(SignalProcessor):
                     continue
                 emissions.append([
                     start,
-                    int(metadata['socket']),
+                    f"socket:{int(metadata['socket'])}",
                     metadata['component'],
                     data.value / elapsed
                 ])
@@ -181,11 +221,11 @@ class SystemPackageEmissionsProcessor(SignalProcessor):
             data=emissions,
             columns=[
                 'timestamp',
-                'socket',
+                'device_id',
                 'component',
                 'value'
             ]
-        ).set_index(['timestamp', 'socket', 'component']).value
+        ).set_index(['timestamp', 'device_id', 'component']).value
 
 
 class SystemDramEmissionsProcessor(SignalProcessor):
@@ -199,6 +239,8 @@ class SystemDramEmissionsProcessor(SignalProcessor):
             elapsed = (end - start) / 1000000000
             for data in interval.data:
                 metadata = {m.name: m.value for m in data.metadata}
+                if 'component' not in metadata:
+                    continue
                 component = metadata['component'].upper()
                 if component not in SocketComponentKind.__members__:
                     logger.info(
@@ -208,7 +250,7 @@ class SystemDramEmissionsProcessor(SignalProcessor):
                     continue
                 emissions.append([
                     start,
-                    int(metadata['socket']),
+                    f"socket:{int(metadata['socket'])}",
                     metadata['component'],
                     data.value / elapsed
                 ])
@@ -216,11 +258,41 @@ class SystemDramEmissionsProcessor(SignalProcessor):
             data=emissions,
             columns=[
                 'timestamp',
-                'socket',
+                'device_id',
                 'component',
                 'value'
             ]
-        ).set_index(['timestamp', 'socket', 'component']).value
+        ).set_index(['timestamp', 'device_id', 'component']).value
+
+
+class SystemDiskEmissionsProcessor(SignalProcessor):
+    index = DISK_OPERATIONAL_EMISSIONS
+
+    def _process_internal(self, signal):
+        emissions = []
+        for interval in signal.interval:
+            start = 1000000000 * interval.start.secs + interval.start.nanos
+            end = 1000000000 * interval.end.secs + interval.end.nanos
+            elapsed = (end - start) / 1000000000
+            for data in interval.data:
+                metadata = {m.name: m.value for m in data.metadata}
+                if 'device' not in metadata:
+                    continue
+                emissions.append([
+                    start,
+                    metadata['device'],
+                    metadata['model'],
+                    data.value / elapsed
+                ])
+        return pd.DataFrame(
+            data=emissions,
+            columns=[
+                'timestamp',
+                'device_id',
+                'model',
+                'value'
+            ]
+        ).set_index(['timestamp', 'device_id', 'model']).value
 
 
 class SystemTemperatureProcessor(SignalProcessor):
@@ -234,19 +306,20 @@ class SystemTemperatureProcessor(SignalProcessor):
                 metadata = {m.name: m.value for m in data.metadata}
                 if metadata['kind'] != 'X86_PKG_TEMP':
                     continue
+                print(metadata)
                 temperature.append([
                     start,
-                    int(metadata['socket']),
+                    f"socket:{int(metadata['socket'])}",
                     data.value
                 ])
         return pd.DataFrame(
             data=temperature,
             columns=[
                 'timestamp',
-                'socket',
+                'device_id',
                 'value'
             ]
-        ).set_index(['timestamp', 'socket']).value
+        ).set_index(['timestamp', 'device_id']).value
 
 
 class SystemFrequencyProcessor(SignalProcessor):
@@ -262,7 +335,7 @@ class SystemFrequencyProcessor(SignalProcessor):
                     continue
                 frequency.append([
                     start,
-                    int(metadata['socket']),
+                    f"socket:{int(metadata['socket'])}",
                     int(metadata['cpu']),
                     data.value
                 ])
@@ -270,11 +343,11 @@ class SystemFrequencyProcessor(SignalProcessor):
             data=frequency,
             columns=[
                 'timestamp',
-                'socket',
+                'device_id',
                 'cpu',
                 'value'
             ]
-        ).set_index(['timestamp', 'socket', 'cpu']).value
+        ).set_index(['timestamp', 'device_id', 'cpu']).value
 
 
 class TaskEnergyProcessor(SignalProcessor):
@@ -290,7 +363,7 @@ class TaskEnergyProcessor(SignalProcessor):
                 metadata = {m.name: m.value for m in data.metadata}
                 power.append([
                     start,
-                    int(metadata['socket']),
+                    f"socket:{int(metadata['socket'])}",
                     int(metadata['cpu']),
                     int(metadata['task']),
                     metadata['component'],
@@ -300,13 +373,13 @@ class TaskEnergyProcessor(SignalProcessor):
             data=power,
             columns=[
                 'timestamp',
-                'socket',
+                'device_id',
                 'cpu',
                 'task',
                 'component',
                 'value'
             ]
-        ).set_index(['timestamp', 'socket', 'cpu', 'task', 'component']).value
+        ).set_index(['timestamp', 'device_id', 'cpu', 'task', 'component']).value
 
 
 class TaskEmissionsProcessor(SignalProcessor):
@@ -322,7 +395,7 @@ class TaskEmissionsProcessor(SignalProcessor):
                 metadata = {m.name: m.value for m in data.metadata}
                 emissions.append([
                     start,
-                    int(metadata['socket']),
+                    f"socket:{int(metadata['socket'])}",
                     int(metadata['cpu']),
                     int(metadata['task']),
                     metadata['component'],
@@ -332,13 +405,13 @@ class TaskEmissionsProcessor(SignalProcessor):
             data=emissions,
             columns=[
                 'timestamp',
-                'socket',
+                'device_id',
                 'cpu',
                 'task',
                 'component',
                 'value'
             ]
-        ).set_index(['timestamp', 'socket', 'cpu', 'task', 'component']).value
+        ).set_index(['timestamp', 'device_id', 'cpu', 'task', 'component']).value
 
 
 # Transistor gap temperature
@@ -355,7 +428,7 @@ def compute_amortized_carbon(temperature, frequency, normal_temperature, normal_
         axis=1
     )
     dfs = []
-    for _, df in df.groupby('socket'):
+    for _, df in df.groupby('device_id'):
         df = df.sort_index().ffill().dropna()
         age = df.pop('value')
         for col in df.columns:
@@ -375,11 +448,13 @@ PROCESSORS = {
         SystemEnergyProcessor(),
         SystemPackagePowerProcessor(),
         SystemDramPowerProcessor(),
+        SystemDiskPowerProcessor(),
     ],
     ('linux_system', Signal.Unit.GRAMS_OF_CO2): [
         SystemEmissionsProcessor(),
         SystemPackageEmissionsProcessor(),
         SystemDramEmissionsProcessor(),
+        SystemDiskEmissionsProcessor(),
     ],
     ('linux_system', Signal.Unit.HERTZ): [SystemFrequencyProcessor()],
     ('linux_system', Signal.Unit.CELSIUS): [SystemTemperatureProcessor()],
@@ -430,6 +505,11 @@ def aggregate_symbols(symbols):
     agg_symbols['data'] = {}
     agg_symbols['metadata'] = symbols['metadata']
     for symbol in symbols['data']:
+        df = symbols['data'][symbol].groupby([
+            'timestamp',
+            'device_id'
+        ]).sum().reset_index()
+        # Should really check if symbol in SOCKET_TEMPERATURE instead
         if symbol in [
             SOCKET_POWER,
             SOCKET_PACKAGE_POWER,
@@ -441,16 +521,14 @@ def aggregate_symbols(symbols):
             CPU_AMORTIZED_EMISSIONS,
             TASK_POWER,
             TASK_OPERATIONAL_EMISSIONS,
+            DISK_POWER,
+            DISK_OPERATIONAL_EMISSIONS,
         ]:
-            df = symbols['data'][symbol].groupby([
-                'timestamp',
-                'socket'
-            ]).sum().reset_index()
-            df.value *= df.groupby('socket')['timestamp'].diff() / 1e9
+            df.value *= df.groupby('device_id')['timestamp'].diff() / 1e9
             df = df.dropna()
         else:
             df = df.reset_index()
-        agg_symbols['data'][symbol] = df.groupby('socket').agg({
+        agg_symbols['data'][symbol] = df.groupby('device_id').agg({
             'value': ('mean', 'median', 'sum', 'std'),
             'timestamp': ('min', 'max')
         })
