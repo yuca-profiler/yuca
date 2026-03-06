@@ -1,6 +1,7 @@
 package yuca.linux.freq;
 
 import static java.util.stream.Collectors.toMap;
+import static yuca.linux.CpuInfo.getCpuSocketMapping;
 import static yuca.util.Timestamps.fromInstant;
 
 import java.nio.file.Files;
@@ -20,6 +21,7 @@ import yuca.signal.SignalInterval.SignalData;
 public final class CpuFreq {
   private static final int CPU_COUNT = Runtime.getRuntime().availableProcessors();
   private static final Path SYS_CPU = Paths.get("/sys", "devices", "system", "cpu");
+  private static final int[] SOCKETS_MAP = getCpuSocketMapping();
 
   /** Returns the expected frequency in Hz of a cpu. */
   public static long getFrequency(int cpu) {
@@ -52,21 +54,19 @@ public final class CpuFreq {
     for (CpuFrequency reading : first) {
       if (secondMap.containsKey(reading.cpu)) {
         CpuFrequency other = secondMap.get(reading.cpu);
+        String cpuId = Integer.toString(reading.cpu);
+        String socketId = Integer.toString(SOCKETS_MAP[reading.cpu]);
         frequencies.add(
             SignalData.newBuilder()
-                .addMetadata(
-                    SignalData.Metadata.newBuilder()
-                        .setName("cpu")
-                        .setValue(Integer.toString(reading.cpu)))
+                .addMetadata(SignalData.Metadata.newBuilder().setName("cpu").setValue(cpuId))
+                .addMetadata(SignalData.Metadata.newBuilder().setName("socket").setValue(socketId))
                 .addMetadata(SignalData.Metadata.newBuilder().setName("kind").setValue("observed"))
                 .setValue(reading.frequency)
                 .build());
         frequencies.add(
             SignalData.newBuilder()
-                .addMetadata(
-                    SignalData.Metadata.newBuilder()
-                        .setName("cpu")
-                        .setValue(Integer.toString(reading.cpu)))
+                .addMetadata(SignalData.Metadata.newBuilder().setName("cpu").setValue(cpuId))
+                .addMetadata(SignalData.Metadata.newBuilder().setName("socket").setValue(socketId))
                 .addMetadata(SignalData.Metadata.newBuilder().setName("kind").setValue("set"))
                 .setValue(reading.setFrequency)
                 .build());

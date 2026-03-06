@@ -10,7 +10,7 @@ from yuca.report import to_dataframe
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description='vesta probe monitor')
+    parser = argparse.ArgumentParser(description='yuca csv converter')
     parser.add_argument(
         nargs='*',
         type=str,

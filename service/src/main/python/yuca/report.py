@@ -7,7 +7,6 @@ def normalize_timestamps(timestamps, bucket_size_ms):
     """ normalizes ns timestamps to ms-bucketed timestamps """
     # TODO: this is producing strange behavior due to int division:
     #   2938450289096200 // 10**6 = 2938450288
-    # TODO: taken from vesta's source. need to determine how to merge
     return bucket_size_ms * (timestamps // 10**6 // bucket_size_ms)
 
 
