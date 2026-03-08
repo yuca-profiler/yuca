@@ -84,7 +84,7 @@ public final class Drives {
                 dev -> {
                   Path modelPath = SYS_BLOCK.resolve(Paths.get(dev, "device/model"));
                   try {
-                    String model = Files.readString(modelPath).trim().replace(' ', '_');
+                    String model = Files.readString(modelPath).trim().replace(' ', '_').toUpperCase();;
                     try {
                       return DiskModel.valueOf(model);
                     } catch (IllegalArgumentException e) {
