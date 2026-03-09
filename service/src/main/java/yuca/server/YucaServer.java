@@ -24,7 +24,7 @@ final class YucaServer {
   private final int port;
   private final Server server;
 
-  private int MAX_MESSAGE_LENGTH = 20 * 1024 * 1024;
+  private int MAX_MESSAGE_LENGTH = 50 * 1024 * 1024;
 
   private YucaServer(ServerArgs args) throws IOException {
     this.port = args.port;
