@@ -3,12 +3,16 @@ import os
 
 from re import search
 from time import time
+from time import sleep
 
 import psutil
 import pandas as pd
 
 from yuca.client import YucaClient
 from yuca.report import to_dataframe
+
+from yuca.symbols.linux import extract_linux_symbols, aggregate_symbols
+from yuca.symbols.util import load_symbols, write_symbols
 
 DEFAULT_SIGNALS = [
     'linux_process',
@@ -68,20 +72,13 @@ def monitor_process(pid, client):
     chunks = []
     last = time()
     while psutil.pid_exists(pid):
-        if time() - last > 2:
-            client.stop(pid)
-            chunks.append(to_dataframe(client.read(
-                pid,
-                DEFAULT_SIGNALS
-            )).to_frame())
-            client.start(pid, 10)
-            last = time()
+        sleep(1)
     client.stop(pid)
-    chunks.append(to_dataframe(client.read(
+    print(f"pid {pid} still finsihes")
+    return client.read(
         pid,
         DEFAULT_SIGNALS
-    )).to_frame())
-    return pd.concat(chunks)
+    )
 
 
 def main():
@@ -95,17 +92,22 @@ def main():
     i = 0
     try:
         # The psutil stuff is a hack for working with pyperformance
-        while psutil.pid_exists(args.pid):
-            child_pid, child_name = get_child_process(process)
-            label = search(r'bm_([^/]+)', child_name).group(1)
-            print(f'watching child {child_pid}: {child_name}')
-            df = monitor_process(
-                child_pid,
-                client
-            ).assign(benchmark=label)
-            df.to_csv(os.path.join(args.output, f'yuca-{args.pid}-{i}.csv'))
-            i += 1
-            client.purge()
+        signals = monitor_process(
+            args.pid,
+            client
+        )
+        #  Write to disk as binary protobuf
+        with open(os.path.join(args.output, f'yuca-{args.pid}-{i}.pb'), "wb") as f:
+            f.write(signals.SerializeToString())
+        i += 1
+        # return signals
+        # print("done monitoring")
+        # symbols = extract_linux_symbols(signals)
+        # # TODO: write the data
+        # symbol_file = f'{args.output}.zip'
+        # print(symbol_file)
+        # write_symbols(symbols, symbol_file)
+        # agg_symbols.to_csv(os.path.join(args.agg_output, 'agg_symbols.csv'))
         print(f'pid {args.pid} terminated')
     except KeyboardInterrupt:
         print(f'monitoring of pid {args.pid} ended by user')
