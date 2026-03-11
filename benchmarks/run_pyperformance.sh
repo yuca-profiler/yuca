@@ -1,4 +1,4 @@
-DATA_DIR=data
+DATA_DIR=pyperfomance-data
 mkdir -p "${DATA_DIR}"
 
 LOCALE=USA
@@ -6,10 +6,28 @@ LOCALE=USA
 run_benchmark() {
     local data_dir="${DATA_DIR}/${BENCHMARK}"
     mkdir -p "${data_dir}"
-    python -m pyperformance run -b "${BENCHMARK}" > log.txt 2> log.txt &
+    
+    java -jar bazel-bin/src/yuca/sys_thermal_cooldown_deploy.jar -period 10000 -temperature 35 > "${data_dir}/cooldown.log" 2>&1
+    sleep 5
+
+    java -jar /home/vincent/yuca/bazel-bin/service/src/main/java/yuca/server/server_deploy.jar > "${data_dir}/server.log" 2>&1 &
+    SERVER_PID=$!
+
+    python3 -m pyperformance run -b "${BENCHMARK}" > "${data_dir}/benchmark.log" 2>&1 &
     ROOT_PID=$!
-    python -m yuca.multiprocess_monitor --pid ${ROOT_PID} --output ${data_dir}
-    java -jar bazel-bin/src/yuca/sys_thermal_cooldown_deploy.jar -period 10000 -temperature 35
+
+    python3 -m yuca.multiprocess_monitor --pid ${ROOT_PID} --output ${data_dir} &
+    MONITOR_PID=$!
+
+    wait ${ROOT_PID}
+    wait ${MONITOR_PID}
+    
+    sleep 5
+    
+    python3 -m yuca.cli purge
+    kill ${SERVER_PID}
+    wait ${SERVER_PID}
+    
 }
 
 # pyperfomance benchmarks
