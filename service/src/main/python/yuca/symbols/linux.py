@@ -5,8 +5,9 @@ import pandas as pd
 import scipy as sp
 
 from yuca.signal_pb2 import Signal
-from yuca.symbols.symbol import SOCKET_POWER, SOCKET_PACKAGE_POWER, SOCKET_DRAM_POWER, SOCKET_OPERATIONAL_EMISSIONS, SOCKET_PACKAGE_OPERATIONAL_EMISSIONS, SOCKET_DRAM_OPERATIONAL_EMISSIONS, SOCKET_TEMPERATURE
-from yuca.symbols.symbol import CPU_FREQUENCY, CPU_AMORTIZED_EMISSIONS
+from yuca.symbols.symbol import SOCKET_POWER, SOCKET_PACKAGE_POWER, SOCKET_DRAM_POWER
+from yuca.symbols.symbol import SOCKET_OPERATIONAL_EMISSIONS, SOCKET_PACKAGE_OPERATIONAL_EMISSIONS, SOCKET_DRAM_OPERATIONAL_EMISSIONS
+from yuca.symbols.symbol import CPU_FREQUENCY, CPU_AMORTIZED_EMISSIONS, SOCKET_TEMPERATURE, DRAM_AMORTIZED_EMISSIONS
 from yuca.symbols.symbol import TASK_POWER, TASK_OPERATIONAL_EMISSIONS
 from yuca.symbols.symbol import DISK_POWER, DISK_OPERATIONAL_EMISSIONS, DISK_AMORTIZED_EMISSIONS
 from yuca.symbols.unit import SocketComponentKind
@@ -545,24 +546,27 @@ def compute_amortized_carbon(temperature, frequency, normal_temperature, normal_
     norm[norm > normal_temperature] = normal_temperature
     # e^(T/temp) / e^(T/normal temp) = e^(T/temp - T/normal temp) = e^(T * (1 /temp - 1/normal temp))
     # Temperature must be in Kelvin for aging to prevent unit mismatch
-    age_func = np.exp(
+    age = np.exp(
         T * (1 / (273 + temperature['value']) - 1 / (273 + norm['value'])))
-
-    age = pd.DataFrame({
-        'value': age_func,
-        'elapsed': norm['elapsed']
-    })
+    # age = pd.DataFrame({
+    #     'value': age_func,
+    #     'elapsed': norm['elapsed']
+    # })
 
     df = pd.concat(
         [frequency['value'].unstack('cpu'), age],
         axis=1
     )
+    # print(frequency['value'].unstack('cpu'))
 
     dfs = []
     for _, df in df.groupby('device_id'):
-        df = df.sort_index().ffill().dropna(axis=1, how='all').dropna(axis=0)
+        df = df.sort_index()
+        # elapsed = df.pop('elapsed')
+        # print('inside groby')
+        # print(df)
+        df = df.ffill().dropna(axis=1, how='all').dropna(axis=0)
         age = df.pop('value')
-        elapsed = df.pop('elapsed')
         for col in df.columns:
             norm = df[col].copy(deep=True)
             norm[norm > normal_frequency] = normal_frequency
@@ -570,23 +574,29 @@ def compute_amortized_carbon(temperature, frequency, normal_temperature, normal_
                 (cpu_embodied_carbon / cpu_lifespan)
         df.columns.name = 'cpu'
         df = df.stack().to_frame(name='value')
-        df['elapsed'] = elapsed
+        # important because value is indexed by cpu rn
+        df = df.groupby(['timestamp', 'device_id'])['value'].sum().to_frame()
+        df['elapsed'] = df.reset_index().groupby('device_id')['timestamp'].diff().values / 1e9
+        df = df.dropna()
         dfs.append(df)
     amortized = pd.concat(dfs)
     amortized.name = 'value'
-    # print("this is amortize")
-    # print(amortized)
+
     return amortized
 
 
 # TODO: Need to be customizable based on device
+# lifespan is 5 years in seconds
+# embodied_carbon is in grams
+dram_lifespan = 157680000
+dram_embodied_carbon = 4750
+
 # lifespan is 3.5 years in seconds
 # embodied_carbon is in grams
 hdd_lifespan = 110376000
 hdd_embodied_carbon = 22440
 
-
-def compute_disk_amortized_carbon(power, lifespan, embodied_carbon):
+def compute_straight_line_amortized_carbon(power, lifespan, embodied_carbon):
     # straight line amortization
     df = power.copy()
     rate = embodied_carbon / lifespan
@@ -653,9 +663,19 @@ def extract_linux_symbols(report):
             35,
             1800000000
         )
+
+    if SOCKET_POWER in symbols['data']:
+        logger.info('Adding new signal dram amortized emissions (GRAMS_OF_CO2)')
+        symbols['data'][DRAM_AMORTIZED_EMISSIONS] = compute_straight_line_amortized_carbon(
+            symbols['data'][SOCKET_POWER],
+            # TODO: need system specs to abstract this
+            dram_lifespan,
+            dram_embodied_carbon
+        )
+
     if DISK_POWER in symbols['data']:
         logger.info('Adding new signal disk amortized emissions (GRAMS_OF_CO2)')
-        symbols['data'][DISK_AMORTIZED_EMISSIONS] = compute_disk_amortized_carbon(
+        symbols['data'][DISK_AMORTIZED_EMISSIONS] = compute_straight_line_amortized_carbon(
             symbols['data'][DISK_POWER],
             # TODO: need system specs to abstract this
             hdd_lifespan,
@@ -668,9 +688,10 @@ def aggregate_symbols(symbols):
     agg_symbols = {}
     agg_symbols['data'] = {}
     agg_symbols['metadata'] = symbols['metadata']
-    print("printing symbol")
-    print(symbols['data'][SOCKET_POWER])
+    # print("printing symbol")
+    # print(symbols['data'][CPU_FREQUENCY])
     for symbol in symbols['data']:
+        # df  = symbols['data'][symbol].reset_index()
         df = symbols['data'][symbol].groupby([
             'timestamp',
             'device_id'
@@ -690,14 +711,15 @@ def aggregate_symbols(symbols):
             DISK_POWER,
             DISK_OPERATIONAL_EMISSIONS,
             DISK_AMORTIZED_EMISSIONS,
+            DRAM_AMORTIZED_EMISSIONS
         ]:
-            # print(f"doing this for symbol {symbol}")
-            # print(df)
-            df.value *= df.elapsed
+            df['value'] *= df['elapsed']
             # df.value *= df.groupby('device_id')['timestamp'].diff() / 1e9
-            df = df.dropna()
+            # df = df.dropna()
         else:
-            df = df.reset_index()
+            print(f"Symbol {symbol} is not in the table")
+            # print("resetting index")
+            # df = df.reset_index()
         agg_symbols['data'][symbol] = df.groupby('device_id').agg({
             'value': ('mean', 'median', 'sum', 'std')
         })

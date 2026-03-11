@@ -44,6 +44,11 @@ CPU_AMORTIZED_EMISSIONS = (
     PhysicalUnit.GRAMS_OF_CO2_RATE,
     EmissionKind.AMORTIZED
 )
+DRAM_AMORTIZED_EMISSIONS = (
+    LogicalUnit.SOCKET,
+    PhysicalUnit.GRAMS_OF_CO2_RATE,
+    SocketComponentKind.DRAM
+)
 TASK_POWER = (
     LogicalUnit.TASK,
     PhysicalUnit.WATTS
