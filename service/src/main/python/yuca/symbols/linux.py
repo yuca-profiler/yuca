@@ -8,7 +8,7 @@ from yuca.signal_pb2 import Signal
 from yuca.symbols.symbol import SOCKET_POWER, SOCKET_PACKAGE_POWER, SOCKET_DRAM_POWER
 from yuca.symbols.symbol import SOCKET_OPERATIONAL_EMISSIONS, SOCKET_PACKAGE_OPERATIONAL_EMISSIONS, SOCKET_DRAM_OPERATIONAL_EMISSIONS
 from yuca.symbols.symbol import CPU_FREQUENCY, CPU_AMORTIZED_EMISSIONS, SOCKET_TEMPERATURE, DRAM_AMORTIZED_EMISSIONS
-from yuca.symbols.symbol import TASK_POWER, TASK_OPERATIONAL_EMISSIONS
+from yuca.symbols.symbol import TASK_POWER, TASK_OPERATIONAL_EMISSIONS, TASK_PACKAGE_OPERATIONAL_EMISSIONS, TASK_DRAM_OPERATIONAL_EMISSIONS
 from yuca.symbols.symbol import DISK_POWER, DISK_OPERATIONAL_EMISSIONS, DISK_AMORTIZED_EMISSIONS
 from yuca.symbols.unit import SocketComponentKind
 
@@ -479,6 +479,135 @@ class TaskEmissionsProcessor(SignalProcessor):
             ]
         ).set_index(['timestamp', 'device_id', 'cpu', 'task'])
 
+class TaskPackageEmissionsProcessor(SignalProcessor):
+    index = TASK_PACKAGE_OPERATIONAL_EMISSIONS
+
+    def _process_internal(self, signal):
+        emissions = []
+        component = None
+        for interval in signal.interval:
+            start = 1000000000 * interval.start.secs + interval.start.nanos
+            end = 1000000000 * interval.end.secs + interval.end.nanos
+            elapsed = (end - start) / 1000000000
+            '''
+            for data in interval.data:
+                metadata = {m.name: m.value for m in data.metadata}
+                if 'component' not in metadata:
+                    continue
+                component = metadata['component'].upper()
+                if component not in SocketComponentKind.__members__:
+                    logger.info(
+                        '%s is not a supported SocketComponentKind', component)
+                    continue
+                if component != SocketComponentKind.PACKAGE.name:
+                    continue
+                emissions.append([
+                    start,
+                    f"socket:{int(metadata['socket'])}",
+                    metadata['component'],
+                    data.value / elapsed,
+                    elapsed
+                ])
+                '''
+            total_value = 0
+            socket = None
+            for data in interval.data:
+                metadata = {m.name: m.value for m in data.metadata}
+                if 'component' not in metadata:
+                    continue
+                component = metadata['component'].upper()
+                if component not in SocketComponentKind.__members__:
+                    logger.info(
+                        '%s is not a supported SocketComponentKind', component)
+                    continue
+                if component != SocketComponentKind.PACKAGE.name:
+                    continue
+                total_value += data.value
+                socket = int(metadata['socket'])
+            emissions.append([
+                start,
+                f"socket:{socket}",
+                int(metadata['cpu']),
+                int(metadata['task']),
+                total_value / elapsed,
+                elapsed
+            ])
+        return pd.DataFrame(
+            data=emissions,
+            columns=[
+                'timestamp',
+                'device_id',
+                'cpu',
+                'task',
+                'value',
+                'elapsed'
+            ]
+        ).set_index(['timestamp', 'device_id', 'cpu', 'task'])
+
+
+class TaskDramEmissionsProcessor(SignalProcessor):
+    index = TASK_DRAM_OPERATIONAL_EMISSIONS
+
+    def _process_internal(self, signal):
+        emissions = []
+        for interval in signal.interval:
+            start = 1000000000 * interval.start.secs + interval.start.nanos
+            end = 1000000000 * interval.end.secs + interval.end.nanos
+            elapsed = (end - start) / 1000000000
+            '''
+            for data in interval.data:
+                metadata = {m.name: m.value for m in data.metadata}
+                if 'component' not in metadata:
+                    continue
+                component = metadata['component'].upper()
+                if component not in SocketComponentKind.__members__:
+                    logger.info(
+                        '%s is not a supported SocketComponentKind', component)
+                    continue
+                if component != SocketComponentKind.DRAM.name:
+                    continue
+                emissions.append([
+                    start,
+                    f"socket:{int(metadata['socket'])}",
+                    metadata['component'],
+                    data.value / elapsed,
+                    elapsed,
+                ])'''
+            total_value = 0
+            socket = None
+            for data in interval.data:
+                metadata = {m.name: m.value for m in data.metadata}
+                if 'component' not in metadata:
+                    continue
+                component = metadata['component'].upper()
+                if component not in SocketComponentKind.__members__:
+                    logger.info(
+                        '%s is not a supported SocketComponentKind', component)
+                    continue
+                if component != SocketComponentKind.DRAM.name:
+                    continue
+                total_value += data.value
+                socket = int(metadata['socket'])
+            emissions.append([
+                start,
+                f"socket:{socket}",
+                int(metadata['cpu']),
+                int(metadata['task']),
+                total_value / elapsed,
+                elapsed
+            ])
+        return pd.DataFrame(
+            data=emissions,
+            columns=[
+                'timestamp',
+                'device_id',
+                'cpu',
+                'task',
+                'value',
+                'elapsed'
+            ]
+        ).set_index(['timestamp', 'device_id', 'cpu', 'task'])
+
 
 # boltzmann's constant in eV/K
 k_b, _, _ = sp.constants.physical_constants['Boltzmann constant in eV/K']
@@ -567,11 +696,12 @@ def compute_amortized_carbon(temperature, frequency, normal_temperature, normal_
         # print(df)
         df = df.ffill().dropna(axis=1, how='all').dropna(axis=0)
         age = df.pop('value')
+        count = df.shape[1]
         for col in df.columns:
             norm = df[col].copy(deep=True)
             norm[norm > normal_frequency] = normal_frequency
             df[col] = (age * df[col] / norm) * \
-                (cpu_embodied_carbon / cpu_lifespan)
+                (cpu_embodied_carbon / count / cpu_lifespan)
         df.columns.name = 'cpu'
         df = df.stack().to_frame(name='value')
         # important because value is indexed by cpu rn
@@ -621,7 +751,11 @@ PROCESSORS = {
     ('linux_system', Signal.Unit.HERTZ): [SystemFrequencyProcessor()],
     ('linux_system', Signal.Unit.CELSIUS): [SystemTemperatureProcessor()],
     ('linux_process', Signal.Unit.JOULES): [TaskEnergyProcessor()],
-    ('linux_process', Signal.Unit.GRAMS_OF_CO2): [TaskEmissionsProcessor()],
+    ('linux_process', Signal.Unit.GRAMS_OF_CO2): [
+        TaskEmissionsProcessor(),
+        TaskPackageEmissionsProcessor(),
+        TaskDramEmissionsProcessor(),
+    ],
 }
 
 
@@ -708,10 +842,12 @@ def aggregate_symbols(symbols):
             CPU_AMORTIZED_EMISSIONS,
             TASK_POWER,
             TASK_OPERATIONAL_EMISSIONS,
+            TASK_PACKAGE_OPERATIONAL_EMISSIONS,
+            TASK_DRAM_OPERATIONAL_EMISSIONS,
             DISK_POWER,
             DISK_OPERATIONAL_EMISSIONS,
             DISK_AMORTIZED_EMISSIONS,
-            DRAM_AMORTIZED_EMISSIONS
+            DRAM_AMORTIZED_EMISSIONS,
         ]:
             df['value'] *= df['elapsed']
             # df.value *= df.groupby('device_id')['timestamp'].diff() / 1e9

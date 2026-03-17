@@ -47,7 +47,8 @@ CPU_AMORTIZED_EMISSIONS = (
 DRAM_AMORTIZED_EMISSIONS = (
     LogicalUnit.SOCKET,
     PhysicalUnit.GRAMS_OF_CO2_RATE,
-    SocketComponentKind.DRAM
+    SocketComponentKind.DRAM,
+    EmissionKind.AMORTIZED
 )
 TASK_POWER = (
     LogicalUnit.TASK,
@@ -56,6 +57,18 @@ TASK_POWER = (
 TASK_OPERATIONAL_EMISSIONS = (
     LogicalUnit.TASK,
     PhysicalUnit.GRAMS_OF_CO2_RATE,
+    EmissionKind.OPERATIONAL
+)
+TASK_PACKAGE_OPERATIONAL_EMISSIONS = (
+    LogicalUnit.TASK,
+    PhysicalUnit.GRAMS_OF_CO2_RATE,
+    SocketComponentKind.PACKAGE,
+    EmissionKind.OPERATIONAL
+)
+TASK_DRAM_OPERATIONAL_EMISSIONS = (
+    LogicalUnit.TASK,
+    PhysicalUnit.GRAMS_OF_CO2_RATE,
+    SocketComponentKind.DRAM,
     EmissionKind.OPERATIONAL
 )
 DISK_POWER = (
