@@ -1,13 +1,6 @@
 import pandas as pd
 
-from yuca.signal_pb2 import Signal
-from yuca.symbols.symbol import SOCKET_POWER, SOCKET_PACKAGE_POWER, SOCKET_DRAM_POWER
-from yuca.symbols.symbol import SOCKET_OPERATIONAL_EMISSIONS, SOCKET_PACKAGE_OPERATIONAL_EMISSIONS, SOCKET_DRAM_OPERATIONAL_EMISSIONS
-from yuca.symbols.symbol import CPU_FREQUENCY, CPU_AMORTIZED_EMISSIONS, SOCKET_TEMPERATURE, DRAM_AMORTIZED_EMISSIONS
-from yuca.symbols.symbol import TASK_POWER, TASK_OPERATIONAL_EMISSIONS, TASK_PACKAGE_OPERATIONAL_EMISSIONS, TASK_DRAM_OPERATIONAL_EMISSIONS
-from yuca.symbols.symbol import DISK_POWER, DISK_OPERATIONAL_EMISSIONS, DISK_AMORTIZED_EMISSIONS
-
-from yuca.symbols.unit import SocketComponentKind
+from yuca.symbols.symbol import DISK_POWER, DISK_OPERATIONAL_EMISSIONS
 from yuca.symbols.processor import SignalProcessor, interval_bounds, get_metadata
 
 class DiskProcessor(SignalProcessor):

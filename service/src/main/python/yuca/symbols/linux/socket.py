@@ -1,3 +1,4 @@
+import logging
 import pandas as pd
 
 from yuca.signal_pb2 import Signal
@@ -5,14 +6,20 @@ from yuca.symbols.symbol import SOCKET_POWER, SOCKET_PACKAGE_POWER, SOCKET_DRAM_
 from yuca.symbols.symbol import SOCKET_OPERATIONAL_EMISSIONS, SOCKET_PACKAGE_OPERATIONAL_EMISSIONS, SOCKET_DRAM_OPERATIONAL_EMISSIONS
 from yuca.symbols.symbol import CPU_FREQUENCY, CPU_AMORTIZED_EMISSIONS, SOCKET_TEMPERATURE, DRAM_AMORTIZED_EMISSIONS
 from yuca.symbols.symbol import TASK_POWER, TASK_OPERATIONAL_EMISSIONS, TASK_PACKAGE_OPERATIONAL_EMISSIONS, TASK_DRAM_OPERATIONAL_EMISSIONS
-from yuca.symbols.symbol import DISK_POWER, DISK_OPERATIONAL_EMISSIONS, DISK_AMORTIZED_EMISSIONS
 
 from yuca.symbols.unit import SocketComponentKind
 from yuca.symbols.processor import SignalProcessor, interval_bounds, get_metadata
 
-class SocketTotalProcessor(SignalProcessor):
+logger = logging.getLogger(__name__)
+logging.basicConfig(
+    format="yuca-processing (%(asctime)s) [%(name)s]: %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S %p %Z",
+    level=logging.DEBUG,
+)
 
+class SocketTotalProcessor(SignalProcessor):
     group_fields = []
+
     def _process_internal(self, signal):
         rows = []
         for interval in signal.interval:
@@ -73,24 +80,18 @@ class SocketComponentProcessor(SignalProcessor):
             columns=columns
             ).set_index(index_cols)
  
-# ---- System (socket-scoped) power ----
- 
 class SystemEnergyProcessor(SocketTotalProcessor):
     index = SOCKET_POWER
- 
  
 class SystemPackagePowerProcessor(SocketComponentProcessor):
     index = SOCKET_PACKAGE_POWER
     component_kind = SocketComponentKind.PACKAGE
  
- 
 class SystemDramPowerProcessor(SocketComponentProcessor):
     index = SOCKET_DRAM_POWER
     component_kind = SocketComponentKind.DRAM
  
- 
-# ---- System (socket-scoped) emissions ----
- 
+
 class SystemEmissionsProcessor(SocketTotalProcessor):
     index = SOCKET_OPERATIONAL_EMISSIONS
  
@@ -99,16 +100,11 @@ class SystemPackageEmissionsProcessor(SocketComponentProcessor):
     index = SOCKET_PACKAGE_OPERATIONAL_EMISSIONS
     component_kind = SocketComponentKind.PACKAGE
  
- 
 class SystemDramEmissionsProcessor(SocketComponentProcessor):
     index = SOCKET_DRAM_OPERATIONAL_EMISSIONS
     component_kind = SocketComponentKind.DRAM
 
 
-# ---- Task (socket+cpu+task-scoped) power/emissions ----
-# Same shapes as System above; the only difference is group_fields, which
-# adds cpu/task to both the grouping key and the output index.
- 
 class TaskEnergyProcessor(SocketTotalProcessor):
     index = TASK_POWER
     group_fields = ['cpu', 'task']

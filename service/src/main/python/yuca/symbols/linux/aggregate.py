@@ -1,19 +1,12 @@
 import logging
 
-import numpy as np
-import pandas as pd
-import scipy as sp
-
 from yuca.signal_pb2 import Signal
 from yuca.symbols.symbol import SOCKET_POWER, SOCKET_PACKAGE_POWER, SOCKET_DRAM_POWER
 from yuca.symbols.symbol import SOCKET_OPERATIONAL_EMISSIONS, SOCKET_PACKAGE_OPERATIONAL_EMISSIONS, SOCKET_DRAM_OPERATIONAL_EMISSIONS
 from yuca.symbols.symbol import CPU_FREQUENCY, CPU_AMORTIZED_EMISSIONS, SOCKET_TEMPERATURE, DRAM_AMORTIZED_EMISSIONS
 from yuca.symbols.symbol import TASK_POWER, TASK_OPERATIONAL_EMISSIONS, TASK_PACKAGE_OPERATIONAL_EMISSIONS, TASK_DRAM_OPERATIONAL_EMISSIONS
 from yuca.symbols.symbol import DISK_POWER, DISK_OPERATIONAL_EMISSIONS, DISK_AMORTIZED_EMISSIONS
-from yuca.symbols.unit import SocketComponentKind
 
-# from yuca.symbols.linux.socket import SystemEnergyProcessor, SystemPackagePowerProcessor, SystemDramPowerProcessor
-# from yuca.symbols.linux.socket import TaskEmissionsProcessor, TaskPackageEmissionsProcessor, TaskDramEmissionsProcessor
 from yuca.symbols.linux.socket import *
 from yuca.symbols.linux.disk import *
 from yuca.symbols.linux.amortized import compute_amortized_carbon, compute_straight_line_amortized_carbon
@@ -50,6 +43,12 @@ PROCESSORS = {
     ],
 }
 
+
+dram_lifespan = 157680000
+dram_embodied_carbon = 512 * 0.29 * 1000
+
+ssd_lifespan = 157680000
+ssd_embodied_carbon =  2143 * 0.16 * 100
 
 def extract_linux_symbols(report):
     symbols = {}
@@ -90,23 +89,23 @@ def extract_linux_symbols(report):
             1800000000
         )
 
-    # if SOCKET_POWER in symbols['data']:
-    #     logger.info('Adding new signal dram amortized emissions (GRAMS_OF_CO2)')
-    #     symbols['data'][DRAM_AMORTIZED_EMISSIONS] = compute_straight_line_amortized_carbon(
-    #         symbols['data'][SOCKET_POWER],
-    #         # TODO: need system specs to abstract this
-    #         dram_lifespan,
-    #         dram_embodied_carbon
-    #     )
+    if SOCKET_POWER in symbols['data']:
+        logger.info('Adding new signal dram amortized emissions (GRAMS_OF_CO2)')
+        symbols['data'][DRAM_AMORTIZED_EMISSIONS] = compute_straight_line_amortized_carbon(
+            symbols['data'][SOCKET_POWER],
+            # TODO: need system specs to abstract this
+            dram_lifespan,
+            dram_embodied_carbon
+        )
 
-    # if DISK_POWER in symbols['data']:
-    #     logger.info('Adding new signal disk amortized emissions (GRAMS_OF_CO2)')
-    #     symbols['data'][DISK_AMORTIZED_EMISSIONS] = compute_straight_line_amortized_carbon(
-    #         symbols['data'][DISK_POWER],
-    #         # TODO: need system specs to abstract this
-    #         hdd_lifespan,
-    #         hdd_embodied_carbon
-    #     )
+    if DISK_POWER in symbols['data']:
+        logger.info('Adding new signal disk amortized emissions (GRAMS_OF_CO2)')
+        symbols['data'][DISK_AMORTIZED_EMISSIONS] = compute_straight_line_amortized_carbon(
+            symbols['data'][DISK_POWER],
+            # TODO: need system specs to abstract this
+            ssd_lifespan,
+            ssd_embodied_carbon
+        )
     return symbols
 
 
@@ -114,15 +113,12 @@ def aggregate_symbols(symbols):
     agg_symbols = {}
     agg_symbols['data'] = {}
     agg_symbols['metadata'] = symbols['metadata']
-    # print("printing symbol")
-    # print(symbols['data'][CPU_FREQUENCY])
     for symbol in symbols['data']:
-        # df  = symbols['data'][symbol].reset_index()
         df = symbols['data'][symbol].groupby([
             'timestamp',
             'device_id'
         ]).sum().reset_index()
-        # Should really check if symbol in SOCKET_TEMPERATURE instead
+        # TODO: Should really check if symbol in SOCKET_TEMPERATURE instead
         if symbol in [
             SOCKET_POWER,
             SOCKET_PACKAGE_POWER,
@@ -142,12 +138,9 @@ def aggregate_symbols(symbols):
             DRAM_AMORTIZED_EMISSIONS,
         ]:
             df['value'] *= df['elapsed']
-            # df.value *= df.groupby('device_id')['timestamp'].diff() / 1e9
-            # df = df.dropna()
         else:
             print(f"Symbol {symbol} is not in the table")
-            # print("resetting index")
-            # df = df.reset_index()
+
         agg_symbols['data'][symbol] = df.groupby('device_id').agg({
             'value': ('mean', 'median', 'sum', 'std')
         })

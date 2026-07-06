@@ -21,12 +21,6 @@ T = -(B * v_dd / t_ox - E_0) / k_b
 cpu_lifespan = 157680000
 cpu_embodied_carbon=7300
 
-dram_lifespan = 157680000
-dram_embodied_carbon = 512 * 0.29 * 1000
-
-ssd_lifespan = 157680000
-ssd_embodied_carbon =  2143 * 0.16 * 100
-
 def compute_amortized_carbon(temperature, frequency, normal_temperature, normal_frequency):
     """
     This code is not fully tested but appears to work as expected based on this script:
