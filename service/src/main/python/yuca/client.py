@@ -4,7 +4,7 @@ import grpc
 from yuca.yuca_service_pb2 import DumpRequest, PurgeRequest, ReadRequest, StartRequest, StopRequest
 from yuca.yuca_service_pb2_grpc import YucaServiceStub
 
-MAX_MESSAGE_LENGTH = 20 * 1024 * 1024
+MAX_MESSAGE_LENGTH = 250 * 1024 * 1024
 
 class YucaClient:
     def __init__(self, addr):
