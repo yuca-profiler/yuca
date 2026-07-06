@@ -7,7 +7,7 @@ from zipfile import ZipFile
 import pandas as pd
 
 from yuca.signal_pb2 import Report
-from yuca.symbols.linux import extract_linux_symbols, aggregate_symbols
+from yuca.symbols.linux.aggregate import extract_linux_symbols, aggregate_symbols
 from yuca.symbols.util import load_symbols, write_symbols
 
 logger = logging.getLogger(__name__)

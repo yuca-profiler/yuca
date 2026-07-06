@@ -10,6 +10,9 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.logging.Logger;
 import yuca.emissions.EmissionsConverter;
 import yuca.emissions.LocaleEmissionsConverters;
+import yuca.linux.drive.commands.Drives;
+import yuca.linux.drive.powermode.PowerModeReading;
+import yuca.linux.drive.powermode.PowerModeSample;
 import yuca.linux.freq.CpuFreq;
 import yuca.linux.freq.CpuFrequencySample;
 import yuca.linux.jiffies.JiffiesAccounting;
@@ -51,6 +54,7 @@ public final class YucaApplicationMonitor implements YucaMonitor {
   private SamplingFuture<Optional<?>> raplFuture;
   private SamplingFuture<ThermalZonesSample> systemTemperatureFuture;
   private SamplingFuture<CpuFrequencySample> frequencyFuture;
+  private SamplingFuture<PowerModeSample> diskDriveFuture;
 
   public YucaApplicationMonitor(
       int periodMillis, long processId, ScheduledExecutorService executor) {
@@ -79,6 +83,9 @@ public final class YucaApplicationMonitor implements YucaMonitor {
         systemTemperatureFuture =
             SamplingFuture.fixedPeriodMillis(SysThermal::sample, periodMillis, executor);
         frequencyFuture = SamplingFuture.fixedPeriodMillis(CpuFreq::sample, periodMillis, executor);
+        diskDriveFuture =
+            SamplingFuture.fixedPeriodMillis(
+                Drives::samplePowerMode, periodMillis, executor);
         isRunning = true;
       }
     }
@@ -155,12 +162,22 @@ public final class YucaApplicationMonitor implements YucaMonitor {
                 Signal.Unit.HERTZ,
                 "/sys/devices/system/cpu/cpu_i/cpufreq")
             .ifPresent(systemComponent::addSignal);
+
+        logger.info("creating disk energy signal");
+        Optional<Signal> diskEnergy =
+            createPhysicalSignal(
+                forwardApply(diskDriveFuture.get(), PowerModeReading::difference),
+                Signal.Unit.JOULES,
+                "/sys/class/block");
+        diskEnergy.ifPresent(systemComponent::addSignal);
+
         monotonicTimeFuture = null;
         systemTemperatureFuture = null;
         processFuture = null;
         systemFuture = null;
         raplFuture = null;
         frequencyFuture = null;
+        diskDriveFuture = null;
 
         // virtual signals
         if (raplEnergy.isEmpty()) {
@@ -168,6 +185,13 @@ public final class YucaApplicationMonitor implements YucaMonitor {
         } else {
           logger.info("creating rapl emissions signal");
           systemComponent.addSignal(convertToEmissions(raplEnergy.get()));
+        }
+
+        if (diskEnergy.isEmpty()) {
+          logger.info("not creating disk emissions: no disk energy");
+        } else {
+          logger.info("creating disk emissions signal");
+          systemComponent.addSignal(convertToEmissions(diskEnergy.get()));
         }
 
         if (processJiffies.isEmpty() && systemJiffies.isEmpty()) {
