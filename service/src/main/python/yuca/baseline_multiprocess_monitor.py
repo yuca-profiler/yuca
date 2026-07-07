@@ -23,7 +23,7 @@ DEFAULT_SIGNALS = [
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description='multiprocessed yuca monitor for pyperformance')
+        description='single multiprocessed yuca monitor for pyperformance')
     parser.add_argument('-p', '--pid', type=int, help='pid to monitor')
     parser.add_argument(
         '--addr',
