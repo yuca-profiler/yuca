@@ -76,6 +76,7 @@ def compute_amortized_carbon(temperature, frequency, normal_temperature, normal_
     dfs = []
     for _, df in df.groupby('device_id'):
         df = df.sort_index()
+        # drop the inactive cores for each socket
         df = df.ffill().dropna(axis=1, how='all').dropna(axis=0)
         age = df.pop('value')
         count = df.shape[1]
