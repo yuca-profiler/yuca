@@ -3,7 +3,6 @@ import os
 
 from re import search
 from time import time
-from time import sleep
 
 import psutil
 import pandas as pd
@@ -67,17 +66,17 @@ def get_child_process(process):
 def monitor_process(pid, client):
     client.start(pid, 0)
     while psutil.pid_exists(pid):
-        sleep(1)
+        pass
     client.stop(pid)
-    return to_dataframe(client.read(
+
+    return client.read(
         pid,
         DEFAULT_SIGNALS
-    )).to_frame()
-
+    )
 
 def main():
     args = parse_args()
-    start = time()
+
     process = psutil.Process(pid=args.pid)  # Main process to track
     print(f'monitoring process {args.pid}')
 
@@ -90,11 +89,22 @@ def main():
             child_pid, child_name = get_child_process(process)
             label = search(r'bm_([^/]+)', child_name).group(1)
             print(f'watching child {child_pid}: {child_name}')
-            df = monitor_process(
+            
+            signals = monitor_process(
                 child_pid,
                 client
-            ).assign(benchmark=label)
+            )
+            #  Write to disk as binary protobuf
+            with open(os.path.join(args.output, f'yuca-{args.pid}-{i}.pb'), "wb") as f:
+                f.write(signals.SerializeToString())
+
+            df = (
+                to_dataframe(signals)
+                .to_frame()
+                .assign(benchmark=label)
+            )
             df.to_csv(os.path.join(args.output, f'yuca-{args.pid}-{i}.csv'))
+
             i += 1
             client.purge()
         print(f'pid {args.pid} terminated')

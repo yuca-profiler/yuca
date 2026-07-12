@@ -65,24 +65,14 @@ def get_child_process(process):
 
 def monitor_process(pid, client):
     client.start(pid, 10)
-    chunks = []
-    last = time()
     while psutil.pid_exists(pid):
-        if time() - last > 2:
-            client.stop(pid)
-            chunks.append(to_dataframe(client.read(
-                pid,
-                DEFAULT_SIGNALS
-            )).to_frame())
-            client.start(pid, 10)
-            last = time()
+        pass
     client.stop(pid)
-    chunks.append(to_dataframe(client.read(
+
+    return client.read(
         pid,
         DEFAULT_SIGNALS
-    )).to_frame())
-    return pd.concat(chunks)
-
+    )
 
 def main():
     args = parse_args()
@@ -99,11 +89,22 @@ def main():
             child_pid, child_name = get_child_process(process)
             label = search(r'bm_([^/]+)', child_name).group(1)
             print(f'watching child {child_pid}: {child_name}')
-            df = monitor_process(
+            
+            signals = monitor_process(
                 child_pid,
                 client
-            ).assign(benchmark=label)
+            )
+            #  Write to disk as binary protobuf
+            with open(os.path.join(args.output, f'yuca-{args.pid}-{i}.pb'), "wb") as f:
+                f.write(signals.SerializeToString())
+
+            df = (
+                to_dataframe(signals)
+                .to_frame()
+                .assign(benchmark=label)
+            )
             df.to_csv(os.path.join(args.output, f'yuca-{args.pid}-{i}.csv'))
+            
             i += 1
             client.purge()
         print(f'pid {args.pid} terminated')
